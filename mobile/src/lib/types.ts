@@ -1,8 +1,11 @@
-export type User = { id: string; name: string; email: string; guest: boolean };
-export type Member = { id: string; name: string; linked: boolean };
+export type Attachment = { id: string; name: string; mime: string; size: number; localUri?: string };
+export type User = { backupEmail?: string; username?: string; photo?: string; id: string; name: string; email: string; guest: boolean };
+export type Member = { username?: string; photo?: string; id: string; name: string; linked: boolean };
 export type Expense = {
   id: string;
   createdBy: string;
+  attachments?: Attachment[];
+  createdAt?: string;
   title: string;
   date: string;
   category: string;
@@ -25,6 +28,8 @@ export type Transfer = {
   note: string;
 };
 export type Trip = {
+  localOnly?: boolean;
+  categories?: string[];
   version: number;
   id: string;
   name: string;
@@ -83,6 +88,7 @@ export type Activity = {
   changes?: { field: string; before: string; after: string }[];
 };
 export type BillInput = {
+  attachments?: Attachment[];
   title: string;
   amount: string;
   currency: string;
@@ -101,3 +107,5 @@ export type PendingBill = {
   createdAt: string;
   error?: string;
 };
+
+export type PendingAction = {id:string; path:string; method:string; body:Record<string, unknown>; createdAt:string; error?:string};

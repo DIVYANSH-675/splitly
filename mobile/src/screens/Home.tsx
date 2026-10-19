@@ -21,12 +21,11 @@ import {
 import { GroupCard, PaperArt } from '../components/FinanceCards';
 import { GroupForm } from '../components/GroupForm';
 import { JoinGroup } from '../components/JoinGroup';
-import { NotificationBell, Notifications } from '../components/Notifications';
+import { NotificationBell } from '../components/Notifications';
 import { SyncStatus } from '../components/PendingBills';
 import Auth from './Auth';
 export default function Home() {
   const { user, ready, trips, refresh, updateTrip, error, setError } = useApp();
-  const [notifications, setNotifications] = useState(false);
   const [create, setCreate] = useState(false),
     [join, setJoin] = useState(false),
     [busy, setBusy] = useState(false),
@@ -83,13 +82,13 @@ export default function Home() {
         <View style={s.between}>
           <Logo />
           <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-            <NotificationBell groups={trips} onPress={() => setNotifications(true)} />
+            <NotificationBell groups={trips} onPress={() => router.push('/notifications')} />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Your profile"
               onPress={() => router.push('/profile')}
             >
-              <Avatar name={user.name} size={43} />
+              <Avatar photo={user.photo} name={user.name} size={43} />
             </Pressable>
           </View>
         </View>
@@ -221,11 +220,6 @@ export default function Home() {
           </View>
         )}
       </ScrollView>
-      <Notifications
-        groups={trips}
-        visible={notifications}
-        onClose={() => setNotifications(false)}
-      />
       <BottomNav active="Groups" />
       {create && <GroupForm onClose={() => setCreate(false)} />}
       {join && (

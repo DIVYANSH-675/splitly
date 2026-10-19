@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from './Typography';
 import { router } from 'expo-router';
-import { api } from '../lib/api';
 import { useApp } from '../lib/context';
 import { currencies, type Trip } from '../lib/types';
 import { Btn, Chip, ErrorBox, Field, Sheet, s } from './ui';
 export function GroupForm({ onClose, trip }: { onClose: () => void; trip?: Trip }) {
-  const { updateTrip } = useApp();
+  const { updateTrip, mutate } = useApp();
   const [name, setName] = useState(trip?.name || ''),
     [currency, setCurrency] = useState(trip?.currency || 'INR'),
     [showCurrency, setShowCurrency] = useState(false),
@@ -18,14 +17,14 @@ export function GroupForm({ onClose, trip }: { onClose: () => void; trip?: Trip 
     setBusy(true);
     setError('');
     try {
-      const data = await api<Trip>(trip ? `/trips/${trip.id}` : '/trips', trip ? 'PATCH' : 'POST', {
+      const data = await mutate(trip ? `/trips/${trip.id}` : '/trips', trip ? 'PATCH' : 'POST', {
         name,
         currency,
         guests: guests
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean),
-      });
+      }) as Trip;
       updateTrip(data);
       onClose();
       if (!trip) router.push({ pathname: '/group/[id]', params: { id: data.id } });

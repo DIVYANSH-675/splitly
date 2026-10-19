@@ -2,9 +2,9 @@ import { Platform } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { exportBytes } from './api';
-export async function shareReport(tripId: string, format: 'pdf' | 'xlsx') {
-  const bytes = await exportBytes(tripId, format);
-  const name = `splitly-report-${Date.now()}.${format}`;
+export async function shareReport(tripId: string, format: 'pdf' | 'xlsx', analytics = false) {
+  const bytes = await exportBytes(tripId, format, analytics);
+  const name = `splitbill-report-${Date.now()}.${format}`;
   const mimeType =
     format === 'pdf'
       ? 'application/pdf'

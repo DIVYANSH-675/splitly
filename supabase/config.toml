@@ -1,0 +1,4 @@
+project_id = "splitbill"
+[functions.splitbill-api]
+verify_jwt = false
+# Every protected route validates its own opaque device session, then checks membership.

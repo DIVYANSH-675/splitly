@@ -9,7 +9,9 @@ import {
 } from 'react-native';
 import { Text } from '../components/Typography';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
+import { openAttachment } from '../lib/attachments';
 import { api } from '../lib/api';
 import { categoryInfo } from '../lib/categories';
 import { useApp } from '../lib/context';
@@ -40,9 +42,10 @@ import {
 import { BalanceCard, BillCard } from '../components/FinanceCards';
 import { ExpenseForm } from '../components/ExpenseForm';
 import { TransferForm } from '../components/TransferForm';
-import { NotificationBell, Notifications } from '../components/Notifications';
+import { NotificationBell } from '../components/Notifications';
 import { PendingBills, SyncStatus } from '../components/PendingBills';
 import { shareReport } from '../lib/export';
+import { Analytics } from '../components/Analytics';
 import { GroupForm } from '../components/GroupForm';
 import Auth from './Auth';
 type Confirm = { title: string; text: string; path: string; group?: boolean };
@@ -50,9 +53,10 @@ export default function Group() {
   const { height, width } = useWindowDimensions();
   const compact = height < 760;
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user, ready, trips, pending, updateTrip, removeTrip } = useApp();
+  const { user, ready, trips, pending, mutate, updateTrip, removeTrip } = useApp();
   const trip = trips.find((t) => t.id === id);
   const [tab, setTab] = useState('Bills'),
+    [reportGraph, setReportGraph] = useState(false),
     [form, setForm] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -80,7 +84,7 @@ export default function Group() {
           if (alive) {
             updateTrip(t);
             setError((previous) =>
-              previous.startsWith('Cannot reach your server') ? '' : previous,
+              previous.startsWith('Cannot reach your server') || previous === 'Group not found' ? '' : previous,
             );
           }
         } catch (e) {
@@ -101,7 +105,8 @@ export default function Group() {
     setBusy(true);
     setError('');
     try {
-      updateTrip(await api<Trip>(`/trips/${id}${path}`, method, body));
+      if (method === 'GET') updateTrip(await api<Trip>(`/trips/${id}${path}`));
+      else await mutate(`/trips/${id}${path}`, method, body as Record<string,unknown>);
       return true;
     } catch (e) {
       setError((e as Error).message);
@@ -150,7 +155,7 @@ export default function Group() {
           />
           <Logo small />
           <View style={{ flexDirection: 'row', gap: 7 }}>
-            <NotificationBell groups={[trip]} onPress={() => setForm('activity')} />
+            <NotificationBell groups={[trip]} onPress={() => router.push(`/notifications?group=${trip.id}`)} />
             <IconButton
               name="ellipsis-horizontal"
               label="Group options"
@@ -206,6 +211,8 @@ export default function Group() {
               share={mine?.spent || 0}
             />
           </Enter>
+          {trip.localOnly && <Text style={s.muted}>Includes changes saved on this device. Waiting to sync.</Text>}
+          <Analytics trip={trip} />
           <View
             style={{
               flexDirection: 'row',
@@ -303,7 +310,7 @@ export default function Group() {
                     },
                   ]}
                 >
-                  <Avatar name={b.name} index={i} size={42} />
+                  <Avatar photo={b.photo} name={b.name} index={i} size={42} />
                   <View style={{ flex: 1, gap: 5 }}>
                     <Text style={{ fontSize: 13, fontWeight: '700', color: C.dark }}>
                       {b.name.replace(/\([^)]*\)/g, '').trim()}
@@ -503,17 +510,17 @@ export default function Group() {
         />
       )}
       {form === 'settings' && <GroupForm trip={trip} onClose={close} />}
-      <Notifications groups={[trip]} visible={form === 'activity'} onClose={close} />
       <Sheet title="Group options" visible={form === 'menu'} onClose={close}>
         <Text style={s.h3}>Take your group with you</Text>
         <Text style={s.muted}>
-          Bills, shares, balances, transfers and complete available history. Exports contain
+          Bills, each person’s share, balances and transfers. The PDF excludes notification history. Exports contain
           confirmed records only.
           {pending.some((b) => b.tripId === trip.id)
             ? ' Sync your saved bills first to include them.'
             : ''}
         </Text>
         <ErrorBox text={error} />
+        <Btn secondary title={reportGraph ? '✓ Include graphs in PDF' : 'Include graphs in PDF'} onPress={() => setReportGraph(v => !v)} />
         {(['pdf', 'xlsx'] as const).map((format) => (
           <Btn
             key={format}
@@ -525,7 +532,7 @@ export default function Group() {
               setBusy(true);
               setError('');
               try {
-                await shareReport(trip.id, format);
+                await shareReport(trip.id, format, reportGraph);
               } catch (e) {
                 setError((e as Error).message);
               } finally {
@@ -559,7 +566,9 @@ export default function Group() {
       </Sheet>
       <Sheet title="People in this group" visible={form === 'members'} onClose={close}>
         <View style={s.card}>
-          <Text style={s.label}>Invite a friend with this code</Text>
+          <Text style={s.label}>Scan to join this group</Text>
+          <View style={{alignItems:'center',padding:20,backgroundColor:C.white,borderRadius:18}}>{trip.code ? <QRCode value={`splitbill:${trip.code}`} size={160} color={C.dark} backgroundColor={C.white} /> : <Text style={s.muted}>Your invite QR will appear after this group syncs.</Text>}</View>
+          <Text style={s.label}>Or share the invite code</Text>
           <Text
             selectable
             style={{ fontSize: 24, letterSpacing: 2, fontWeight: '700', color: C.dark }}
@@ -582,7 +591,7 @@ export default function Group() {
         </View>
         {trip.members.map((m, i) => (
           <View style={s.row} key={m.id}>
-            <Avatar name={m.name} index={i} />
+            <Avatar photo={m.photo} name={m.name} index={i} />
             <Text style={[s.body, { flex: 1 }]}>
               {m.name}
               {m.id === trip.me ? ' (you)' : ''}
@@ -672,6 +681,7 @@ export default function Group() {
                 Original amount {money(detail.originalAmount, detail.currency)} · rate {detail.rate}
               </Text>
             )}
+            {detail.attachments?.map(file => <Btn key={file.id} title={file.name} icon="attach-outline" secondary onPress={() => openAttachment(trip.id, file).catch(e => setError(e.message))} />)}
             <Text style={s.h3}>Paid by</Text>
             {detail.payers.map((p) => (
               <View style={s.between} key={p.memberId}>
@@ -731,7 +741,7 @@ export default function Group() {
             if (confirmation.group) {
               setBusy(true);
               try {
-                await api(`/trips/${id}`, 'DELETE');
+                await mutate(`/trips/${id}`, 'DELETE');
                 removeTrip(id);
                 setConfirmation(null);
                 router.replace('/');

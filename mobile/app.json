@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Splitly",
+    "name": "SplitBill",
     "slug": "splitly",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,19 +17,18 @@
       "predictiveBackGestureEnabled": true,
       "package": "com.divyansh.splitly",
       "blockedPermissions": [
-        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
-      "name": "Splitly"
+      "name": "SplitBill"
     },
     "plugins": [
       "expo-router",
@@ -40,8 +39,27 @@
         "expo-build-properties",
         {
           "android": {
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": true,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableBundleCompression": true
           }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Scan a group QR code to join your friends.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose your optional profile photo.",
+          "microphonePermission": false,
+          "cameraPermission": "Scan a group QR code."
         }
       ]
     ],

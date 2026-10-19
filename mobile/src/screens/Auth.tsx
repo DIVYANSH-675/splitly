@@ -2,15 +2,17 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '../components/Typography';
 import { useApp } from '../lib/context';
-import { baseUrl, setApiUrl } from '../lib/api';
+import { api, baseUrl, setApiUrl } from '../lib/api';
 import { Btn, C, Enter, ErrorBox, Field, Icon, Logo, Page, Sheet, s } from '../components/ui';
 import { PaperArt } from '../components/FinanceCards';
 export default function Auth() {
-  const { signIn, startGuest } = useApp();
+  const { recoverEmail, startGuest } = useApp();
   const [account, setAccount] = useState(false),
     [name, setName] = useState(''),
+    [username, setUsername] = useState(''),
     [email, setEmail] = useState(''),
-    [password, setPassword] = useState(''),
+    [code, setCode] = useState(''),
+    [sent, setSent] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [config, setConfig] = useState(false),
@@ -19,8 +21,13 @@ export default function Auth() {
     setBusy(true);
     setError('');
     try {
-      if (account) await signIn({ name, email, password }, false);
-      else await startGuest(name);
+      if (account) {
+        if (sent) await recoverEmail(email, code);
+        else {
+          await api('/email-login/start', 'POST', { email });
+          setSent(true);
+        }
+      } else await startGuest(name, username);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -95,20 +102,31 @@ export default function Auth() {
             </Text>
             <Text style={s.muted}>
               {account
-                ? 'Your people and shared bills are right here.'
-                : 'Start with your name. We’ll take care of the numbers.'}
+                ? 'Use the backup email you verified in Settings.'
+                : 'Your name and a unique username. That’s all.'}
             </Text>
           </View>
           {!account ? (
-            <Field
-              label="Your name"
-              value={name}
-              onChangeText={setName}
-              placeholder="What should we call you?"
-              autoComplete="name"
-              maxLength={60}
-              onSubmitEditing={submit}
-            />
+            <>
+              <Field
+                label="Your name"
+                value={name}
+                onChangeText={setName}
+                placeholder="What should we call you?"
+                autoComplete="name"
+                maxLength={60}
+                onSubmitEditing={submit}
+              />
+              <Field
+                label="Unique username"
+                value={username}
+                onChangeText={setUsername}
+                placeholder="e.g. aarav_27"
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={24}
+              />
+            </>
           ) : (
             <>
               <Field
@@ -120,21 +138,28 @@ export default function Auth() {
                 autoCapitalize="none"
                 autoComplete="email"
               />
-              <Field
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Your password"
-                secureTextEntry
-                autoCapitalize="none"
-                autoComplete="current-password"
-                onSubmitEditing={submit}
-              />
+              {sent && (
+                <>
+                  <Text style={s.muted}>
+                    If this is your verified backup email, a code is on its way. Check your inbox.
+                  </Text>
+                  <Field
+                    label="Email code"
+                    value={code}
+                    onChangeText={setCode}
+                    placeholder="Verification code"
+                    keyboardType="number-pad"
+                    autoComplete="one-time-code"
+                    maxLength={8}
+                    onSubmitEditing={submit}
+                  />
+                </>
+              )}
             </>
           )}
           <ErrorBox text={error} />
           <Btn
-            title={account ? 'Sign in' : 'Get started'}
+            title={account ? (sent ? 'Verify code & sign in' : 'Send sign-in code') : 'Get started'}
             icon="arrow-forward"
             onPress={submit}
             busy={busy}
@@ -142,18 +167,20 @@ export default function Auth() {
           <View style={{ alignItems: 'center', gap: 16 }}>
             <Text style={{ fontSize: 10, color: C.muted }}>
               {account
-                ? 'Welcome to your little corner of Splitly.'
+                ? 'Welcome to your little corner of SplitBill.'
                 : 'No email. No password. Just your people.'}
             </Text>
             <Pressable
               accessibilityRole="button"
               onPress={() => {
                 setAccount((v) => !v);
+                setSent(false);
+                setCode('');
                 setError('');
               }}
             >
               <Text style={s.link}>
-                {account ? 'Start with just your name' : 'Already have an account? Sign in'}
+                {account ? 'Start with just your name' : 'Sign in with backup email'}
               </Text>
             </Pressable>
           </View>

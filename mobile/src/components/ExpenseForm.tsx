@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from './Typography';
-import { api } from '../lib/api';
+import { pickAttachment } from '../lib/attachments';
 import { useApp } from '../lib/context';
 import { categoryInfo, expenseCategories } from '../lib/categories';
 import {
@@ -9,6 +9,7 @@ import {
   inputMoney,
   localDate,
   money,
+  type Attachment,
   type BillInput,
   type PendingBill,
   type Expense,
@@ -28,7 +29,11 @@ export function ExpenseForm({
   onClose: () => void;
   onSaved: (t: Trip) => void;
 }) {
-  const { addBill } = useApp();
+  const { addBill, mutate } = useApp();
+  const [attachments, setAttachments] = useState<Attachment[]>(
+    expense?.attachments || draft?.body.attachments || [],
+  );
+  const [newCategory, setNewCategory] = useState('');
   const currency = expense?.currency || draft?.body.currency || trip.currency;
   const [amount, setAmount] = useState(
       expense ? inputMoney(expense.originalAmount, currency) : draft?.body.amount || '',
@@ -77,6 +82,7 @@ export function ExpenseForm({
     try {
       const body: BillInput = {
         title,
+        attachments,
         amount,
         currency,
         rate: expense?.rate || draft?.body.rate || 1,
@@ -88,7 +94,7 @@ export function ExpenseForm({
         payers: payers.map((memberId) => ({ memberId, amount: paid[memberId] || '0' })),
       };
       if (expense)
-        onSaved(await api<Trip>(`/trips/${trip.id}/expenses/${expense.id}`, 'PATCH', body));
+        onSaved((await mutate(`/trips/${trip.id}/expenses/${expense.id}`, 'PATCH', body)) as Trip);
       else await addBill(trip.id, body, draft?.id);
       onClose();
     } catch (e) {
@@ -155,7 +161,12 @@ export function ExpenseForm({
         </Pressable>
         {choosingCategory && (
           <View style={s.wrap}>
-            {expenseCategories.map((item) => (
+            {[
+              ...expenseCategories,
+              ...(trip.categories || [])
+                .filter((c) => !expenseCategories.some((v) => v.value === c))
+                .map((c) => ({ value: c, label: c })),
+            ].map((item) => (
               <Chip
                 key={item.value}
                 title={item.label}
@@ -168,6 +179,69 @@ export function ExpenseForm({
             ))}
           </View>
         )}
+        {choosingCategory && (
+          <View style={{ gap: 10 }}>
+            <Field
+              label="New group category"
+              value={newCategory}
+              onChangeText={setNewCategory}
+              placeholder="e.g. Camping"
+              maxLength={40}
+            />
+            <Btn
+              title="Add group category"
+              secondary
+              onPress={async () => {
+                if (!newCategory.trim()) return;
+                try {
+                  await mutate(`/trips/${trip.id}/categories`, 'POST', {
+                    name: newCategory.trim(),
+                  });
+                  setCategory(newCategory.trim());
+                  setChoosingCategory(false);
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }}
+            />
+            <Text style={s.muted}>Available to everyone in this group after syncing.</Text>
+          </View>
+        )}
+      </View>
+      <View style={{ gap: 12 }}>
+        <Text style={s.label}>Attachments · optional</Text>
+        {attachments.map((file) => (
+          <View key={file.id} style={s.between}>
+            <Text style={[s.muted, { flex: 1 }]} numberOfLines={1}>
+              {file.name}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${file.name}`}
+              onPress={() => setAttachments((prev) => prev.filter((a) => a.id !== file.id))}
+            >
+              <Text style={{ color: C.red }}>Remove</Text>
+            </Pressable>
+          </View>
+        ))}
+        {attachments.length < 3 && (
+          <Btn
+            title="Attach receipt or file"
+            icon="attach-outline"
+            secondary
+            onPress={async () => {
+              try {
+                const file = await pickAttachment();
+                if (file) setAttachments((prev) => [...prev, file].slice(0, 3));
+              } catch (e) {
+                setError((e as Error).message);
+              }
+            }}
+          />
+        )}
+        <Text style={s.muted}>
+          JPG, PNG, WebP or PDF · up to 2 MB each. Saved on your device until synced.
+        </Text>
       </View>
       <Text style={s.label}>Who paid?</Text>
       <View style={s.wrap}>

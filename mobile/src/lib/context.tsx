@@ -3,8 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { AppState } from 'react-native';
 import { api, ApiError, baseUrl, initApi, sessionCacheKey, setToken } from './api';
+import { uploadAttachments } from './attachments';
+import { projectAction, projectActions, operationId } from './offline-actions.mjs';
 import { Outbox } from './outbox.mjs';
-import { currencies, type BillInput, type PendingBill, type Trip, type User } from './types';
+import {
+  currencies,
+  type PendingAction,
+  type BillInput,
+  type PendingBill,
+  type Trip,
+  type User,
+} from './types';
 type Context = {
   user: User | null;
   ready: boolean;
@@ -14,9 +23,18 @@ type Context = {
   pending: PendingBill[];
   syncing: boolean;
   seen: Record<string, string>;
+  actions: PendingAction[];
+  removeAction: (id: string) => Promise<void>;
+  retryActions: () => Promise<void>;
+  mutate: (
+    path: string,
+    method: string,
+    body?: Record<string, unknown>,
+  ) => Promise<Trip | User | undefined>;
   setError: (s: string) => void;
   signIn: (values: Record<string, string>, register: boolean) => Promise<void>;
-  startGuest: (name: string) => Promise<void>;
+  startGuest: (name: string, username: string) => Promise<void>;
+  recoverEmail: (email: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
   updateTrip: (trip: Trip) => void;
@@ -37,19 +55,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [pending, setPending] = useState<PendingBill[]>([]),
     [syncing, setSyncing] = useState(false),
     [seen, setSeen] = useState<Record<string, string>>({});
+  const [actions, setActions] = useState<PendingAction[]>([]);
+  const actionBox = useRef<Outbox<PendingAction, Trip | User | { ok: boolean }> | null>(null);
   const outbox = useRef<Outbox | null>(null);
   const currentUser = useRef<string | null>(null);
   const cacheWrites = useRef(Promise.resolve());
-  const updateTrip = useCallback(
-    (trip: Trip) =>
-      setTrips((prev) => {
-        const old = prev.find((t) => t.id === trip.id);
-        return old && (old.version || 0) > (trip.version || 0)
-          ? prev
-          : [trip, ...prev.filter((t) => t.id !== trip.id)];
-      }),
-    [],
-  );
+  const updateTrip = useCallback((trip: Trip) => {
+    if (trip.localOnly) return;
+    setTrips((prev) => {
+      const old = prev.find((t) => t.id === trip.id);
+      return old && (old.version || 0) > (trip.version || 0)
+        ? prev
+        : [trip, ...prev.filter((t) => t.id !== trip.id)];
+    });
+  }, []);
   const refresh = useCallback(async () => {
     try {
       const data = await api<Trip[]>('/trips');
@@ -121,10 +140,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     currentUser.current = userId || null;
     if (!userId) {
       outbox.current = null;
+      actionBox.current = null;
       return;
     }
     const box = new Outbox(AsyncStorage, `splitly.outbox:${baseUrl}:${userId}`);
     outbox.current = box;
+    const changes = new Outbox<PendingAction, Trip | User | { ok: boolean }>(
+      AsyncStorage,
+      `splitbill.actions:${baseUrl}:${userId}`,
+    );
+    actionBox.current = changes;
+    changes
+      .load()
+      .then((items) => {
+        if (actionBox.current === changes) setActions([...items]);
+      })
+      .catch((e) => setError(e.message));
     box
       .load()
       .then((items) => {
@@ -138,10 +169,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!box || !owner || !online) return;
     setSyncing(true);
     try {
+      const changes = actionBox.current;
+      if (changes) {
+        await changes.flush(
+          async (item) => {
+            const body: Record<string, unknown> = { ...item.body, clientRequestId: item.id };
+            if (Array.isArray(body.attachments))
+              body.attachments = await uploadAttachments(
+                String(item.path.split('/')[2]),
+                body.attachments as import('./types').Attachment[],
+              );
+            return api<Trip | User | { ok: boolean }>(item.path, item.method, body);
+          },
+          (result) => {
+            if ('members' in result) updateTrip(result);
+            else if ('name' in result) setUser(result);
+          },
+        );
+        setActions([...(await changes.load())]);
+      }
       await box.flush(
-        (item) =>
+        async (item) =>
           api<Trip>(`/trips/${item.tripId}/expenses`, 'POST', {
             ...item.body,
+            attachments: await uploadAttachments(item.tripId, item.body.attachments),
             clientRequestId: item.id,
           }),
         (trip) => {
@@ -228,8 +279,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUser(result.user);
     await refresh();
   };
-  const startGuest = async (name: string) => {
-    const result = await api<{ token: string; user: User }>('/guest', 'POST', { name });
+  const startGuest = async (name: string, username: string) => {
+    const result = await api<{ token: string; user: User }>('/guest', 'POST', { name, username });
     await setToken(result.token);
     setSeen({});
     setPending([]);
@@ -237,7 +288,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await refresh();
   };
   const signOut = async () => {
-    if (outbox.current && (await outbox.current.load()).length)
+    if (
+      (actionBox.current && (await actionBox.current.load()).length) ||
+      (outbox.current && (await outbox.current.load()).length)
+    )
       throw new Error('Sync or remove your saved offline bills before signing out.');
     try {
       await api('/logout', 'POST', {});
@@ -267,12 +321,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }),
     [],
   );
+  const mutate = async (path: string, method: string, body: Record<string, unknown> = {}) => {
+    if (!user || !actionBox.current) throw new Error('Your device is still opening. Try again.');
+    const payload = { ...body };
+    if (method === 'POST') payload.id ||= operationId();
+    if (path === '/trips' && method === 'POST') {
+      payload.me = operationId();
+      payload.code = Array.from({ length: 12 }, () => Math.floor(Math.random() * 16).toString(16))
+        .join('')
+        .toUpperCase();
+      payload.memberIds = (Array.isArray(payload.guests) ? payload.guests : []).map(() =>
+        operationId(),
+      );
+    }
+    const item: PendingAction = {
+      id: operationId(),
+      path,
+      method,
+      body: payload,
+      createdAt: new Date().toISOString(),
+    };
+    const projected = projectAction(projectActions(trips, actions, user), item, user);
+    await actionBox.current.put(item);
+    setActions([...(await actionBox.current.load())]);
+    if (path === '/me') setUser({ ...user, ...payload } as User);
+    void sync();
+    return path === '/me'
+      ? ({ ...user, ...payload } as User)
+      : projected.find((t) => t.id === (path === '/trips' ? payload.id : path.split('/')[2]));
+  };
   return (
     <AppContext.Provider
       value={{
         user,
         ready,
-        trips,
+        trips: user ? projectActions(trips, actions, user) : trips,
+        actions,
+        removeAction: async (id) => {
+          if (actionBox.current) {
+            await actionBox.current.remove(id);
+            setActions([...(await actionBox.current.load())]);
+          }
+        },
+        retryActions: async () => {
+          if (actionBox.current) {
+            for (const item of [...(await actionBox.current.load())])
+              await actionBox.current.put({ ...item, error: '' });
+            setActions([...(await actionBox.current.load())]);
+          }
+          await sync();
+        },
+        mutate,
         error,
         online,
         pending,
@@ -281,6 +380,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setError,
         signIn,
         startGuest,
+        recoverEmail: async (email, code) => {
+          const result = await api<{ token: string; user: User }>('/email-login/verify', 'POST', {
+            email,
+            code,
+          });
+          await setToken(result.token);
+          setSeen({});
+          setPending([]);
+          setActions([]);
+          setUser(result.user);
+          await refresh();
+        },
         signOut,
         refresh,
         updateTrip,

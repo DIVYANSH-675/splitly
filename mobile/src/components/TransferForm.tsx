@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Text } from './Typography';
-import { api } from '../lib/api';
+import { useApp } from '../lib/context';
 import { inputMoney, localDate, type Transfer, type Trip } from '../lib/types';
 import { Btn, Chip, ErrorBox, Field, Sheet, s } from './ui';
 export function TransferForm({
@@ -17,6 +17,7 @@ export function TransferForm({
   onClose: () => void;
   onSaved: (t: Trip) => void;
 }) {
+  const {mutate} = useApp();
   const [from, setFrom] = useState(transfer?.from || initial?.from || trip.me),
     [to, setTo] = useState(
       transfer?.to || initial?.to || trip.members.find((m) => m.id !== trip.me)?.id || '',
@@ -80,7 +81,7 @@ export function TransferForm({
           setBusy(true);
           try {
             onSaved(
-              await api<Trip>(
+              await mutate(
                 `/trips/${trip.id}/transfers${transfer ? `/${transfer.id}` : ''}`,
                 transfer ? 'PATCH' : 'POST',
                 {
@@ -90,7 +91,7 @@ export function TransferForm({
                   date: transfer?.date || localDate(),
                   note,
                 },
-              ),
+              ) as Trip,
             );
             onClose();
           } catch (e) {

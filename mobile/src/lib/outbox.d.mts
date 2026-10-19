@@ -1,5 +1,5 @@
 import type { PendingBill, Trip } from './types';
-export class Outbox {
+export class Outbox<T = PendingBill, R = Trip> {
   constructor(
     storage: {
       getItem(k: string): Promise<string | null>;
@@ -7,12 +7,12 @@ export class Outbox {
     },
     key: string,
   );
-  items: PendingBill[];
-  load(): Promise<PendingBill[]>;
-  put(item: PendingBill): Promise<void>;
+  items: T[];
+  load(): Promise<T[]>;
+  put(item: T): Promise<void>;
   remove(id: string): Promise<void>;
   flush(
-    send: (item: PendingBill) => Promise<Trip>,
-    onSaved: (trip: Trip) => void | Promise<void>,
+    send: (item: T) => Promise<R>,
+    onSaved: (trip: R) => void | Promise<void>,
   ): Promise<void>;
 }

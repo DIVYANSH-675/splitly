@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Image,
   AccessibilityInfo,
   ActivityIndicator,
   Animated,
@@ -33,10 +34,12 @@ export const C = {
 };
 export function Icon({
   name,
+  photo,
   size = 22,
   color = C.dark,
 }: {
   name: string;
+  photo?: string;
   size?: number;
   color?: string;
 }) {
@@ -92,7 +95,7 @@ export function Logo({ small = false, light = false }: { small?: boolean; light?
           color: light ? '#F4F8EB' : C.dark,
         }}
       >
-        splitly<Text style={{ color: light ? C.lime : C.accent, fontWeight: '800' }}>.</Text>
+        SplitBill<Text style={{ color: light ? C.lime : C.accent, fontWeight: '800' }}>.</Text>
       </Text>
     </View>
   );
@@ -255,13 +258,16 @@ export function Chip({
 const avatarColors = ['#E6EDD7', '#F2E5DA', '#E6E5F1', '#DDEBF0', '#F0E7C8'];
 export function Avatar({
   name,
+  photo,
   size = 40,
   index = 0,
 }: {
   name: string;
+  photo?: string;
   size?: number;
   index?: number;
 }) {
+  if (photo) return <Image source={{uri:photo}} style={{width:size,height:size,borderRadius:size/2,borderWidth:2,borderColor:C.bg}} accessibilityLabel={`${name} profile photo`} />;
   const initials = name
     .replace(/\([^)]*\)/g, '')
     .trim()
@@ -288,12 +294,12 @@ export function Avatar({
     </View>
   );
 }
-export function FacePile({ members }: { members: { id: string; name: string }[] }) {
+export function FacePile({ members }: { members: { id: string; name: string; photo?: string }[] }) {
   return (
     <View style={[s.row, { gap: 0 }]}>
       {members.slice(0, 4).map((m, i) => (
         <View key={m.id} style={{ marginLeft: i ? -9 : 0 }}>
-          <Avatar name={m.name} size={31} index={i} />
+          <Avatar photo={m.photo} name={m.name} size={31} index={i} />
         </View>
       ))}
       {members.length > 4 && (

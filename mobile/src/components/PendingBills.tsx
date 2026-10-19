@@ -6,23 +6,24 @@ import { useApp } from '../lib/context';
 import { categoryInfo } from '../lib/categories';
 import type { PendingBill, Trip } from '../lib/types';
 export function SyncStatus() {
-  const { online, pending, syncing, retryPending, setError } = useApp();
-  if (online && !pending.length) return null;
+  const { online, pending, syncing, actions, retryActions, retryPending, setError, removeAction } = useApp();
+  if (online && !pending.length && !actions.length) return null;
   return (
     <View style={{ backgroundColor: C.pale, borderRadius: 17, padding: 14, gap: 9 }}>
       <View style={s.row}>
         <Icon name="cloud-offline-outline" color={C.accent} size={18} />
         <Text style={{ flex: 1, color: C.accent, fontSize: 11, fontWeight: '600' }}>
           {!online
-            ? 'You’re offline. Bills are saved on this device.'
-            : `${pending.length} bill${pending.length === 1 ? '' : 's'} waiting to sync.`}
+            ? 'You’re offline. Your changes are saved on this device.'
+            : `${pending.length + actions.length} change${pending.length + actions.length === 1 ? '' : 's'} waiting to sync.`}
         </Text>
       </View>
-      {pending.length > 0 && (
+      {actions.filter(a => a.error).map(a => <View key={a.id} style={{gap:8}}><ErrorBox text={a.error || ''} /><Pressable accessibilityRole="button" onPress={() => removeAction(a.id).catch(e=>setError(e.message))}><Text style={s.link}>Discard failed update</Text></Pressable></View>)}
+      {pending.length + actions.length > 0 && (
         <Pressable
           accessibilityRole="button"
           disabled={syncing}
-          onPress={() => retryPending().catch((e) => setError(e.message))}
+          onPress={() => Promise.all([retryPending(),retryActions()]).catch((e) => setError(e.message))}
         >
           <Text style={s.link}>{syncing ? 'Syncing…' : 'Try syncing now →'}</Text>
         </Pressable>

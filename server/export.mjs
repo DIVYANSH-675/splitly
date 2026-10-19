@@ -7,11 +7,11 @@ const bold = fileURLToPath(new URL('./assets/Manrope-Bold.ttf', import.meta.url)
 const value = (n, c) => n / 10 ** currencies[c];
 const money = (n, c) =>
   `${c} ${value(n, c).toLocaleString('en-IN', { minimumFractionDigits: currencies[c], maximumFractionDigits: currencies[c] })}`;
-export async function exportTrip(trip, format) {
+export async function exportTrip(trip, format, { analytics = false } = {}) {
   const name = (id) => trip.members.find((m) => m.id === id)?.name || 'Former member';
   if (format === 'xlsx') {
     const book = new ExcelJS.Workbook();
-    book.creator = 'Splitly';
+    book.creator = 'SplitBill';
     book.created = new Date();
     const sheet = (title, headers, rows, widths, numbers = []) => {
       const ws = book.addWorksheet(title, { views: [{ state: 'frozen', ySplit: 1 }] });
@@ -71,10 +71,10 @@ export async function exportTrip(trip, format) {
     );
     sheet(
       'Expenses',
-      ['ID', 'Date', 'Description', 'Category', 'Paid by', 'Amount', 'Split method', 'Note'],
+      ['ID', 'Date / time', 'Description', 'Category', 'Paid by', 'Amount', 'Split method', 'Note'],
       trip.expenses.map((e) => [
         e.id,
-        e.date,
+        e.createdAt ? `${e.date} ${e.createdAt.slice(11,19)} UTC` : e.date,
         e.title,
         e.category,
         e.payers.map((p) => name(p.memberId)).join(', '),
@@ -137,7 +137,7 @@ export async function exportTrip(trip, format) {
     size: 'A4',
     margin: 42,
     bufferPages: true,
-    info: { Title: `${trip.name} - Splitly report`, Author: 'Splitly' },
+    info: { Title: `${trip.name} - SplitBill report`, Author: 'SplitBill' },
   });
   doc.registerFont('Regular', regular);
   doc.registerFont('Bold', bold);
@@ -199,79 +199,47 @@ export async function exportTrip(trip, format) {
     if (!rows.length) paragraph('No records yet.', { color: '#66725F' });
     doc.moveDown(0.4);
   };
-  paragraph('splitly.', { size: 28, strong: true, color: '#193E30' });
-  doc.moveDown(0.4);
-  paragraph(trip.name, { size: 22, strong: true });
-  paragraph(`Exported ${new Date().toISOString()} · Confirmed records only`, {
-    size: 9,
-    color: '#66725F',
-  });
-  doc.moveDown();
-  paragraph(`Trip expenses: ${money(trip.total, trip.currency)}`, { size: 18, strong: true });
-  paragraph(
-    `${trip.expenses.length} bills · ${trip.transfers.length} transfers. Transfers are excluded from expenses.`,
-    { size: 9 },
-  );
-  heading('Everyone’s balance');
-  table(
-    ['Member', 'Paid', 'Share', 'Balance'],
-    trip.balances.map((b) => [
-      b.name,
-      money(b.paid, trip.currency),
-      money(b.spent, trip.currency),
-      `${b.balance > 0 ? '+' : ''}${money(b.balance, trip.currency)}`,
-    ]),
-    [160, 117, 117, 117],
-  );
-  heading('Bills');
-  table(
-    ['Date', 'Description / category', 'Paid by', 'Amount'],
-    trip.expenses.map((e) => [
-      e.date,
-      `${e.title}\n${e.category}`,
-      e.payers
-        .slice(0, 3)
-        .map((p) => name(p.memberId))
-        .join(', ') + (e.payers.length > 3 ? ` +${e.payers.length - 3} more` : ''),
-      money(e.amount, trip.currency),
-    ]),
-    [70, 190, 134, 117],
-  );
-  heading('Who paid for each bill');
-  table(
-    ['Bill', 'Member', 'Paid'],
-    trip.expenses.flatMap((e) =>
-      e.payers.map((p) => [e.title, name(p.memberId), money(p.amount, trip.currency)]),
-    ),
-    [230, 164, 117],
-  );
-  heading('Each person’s bill share');
-  table(
-    ['Bill', 'Member', 'Share'],
-    trip.expenses.flatMap((e) =>
-      e.shares.map((s) => [e.title, name(s.memberId), money(s.amount, trip.currency)]),
-    ),
-    [230, 164, 117],
-  );
-  heading('Transfers - not expenses');
-  table(
-    ['Date', 'From / to', 'Amount', 'Note'],
-    trip.transfers.map((t) => [
-      t.date,
-      `${name(t.from)} → ${name(t.to)}`,
-      money(t.amount, trip.currency),
-      t.note,
-    ]),
-    [70, 174, 117, 150],
-  );
-  heading('Activity history');
-  for (const a of trip.activity || []) {
-    ensure(62);
-    paragraph(`${a.user} ${a.message}`, { strong: true });
-    paragraph(a.at, { size: 8, color: '#66725F' });
-    for (const c of a.changes || [])
-      paragraph(`${c.field}: ${c.before || '(none)'} → ${c.after || '(none)'}`, { size: 9 });
-    doc.moveDown(0.5);
+  paragraph('Trip Expense Ledger', { size: 22, strong: true, color: '#193E30' });
+  paragraph(trip.name, {size:14, strong:true});
+  paragraph(`Exported ${new Date().toISOString()} · ${trip.currency} · Confirmed records`, {size:8,color:'#66725F'});
+  paragraph('Transfers are recorded separately and excluded from shared expenses.', {size:8});
+  const timestamp = (entry) => entry.createdAt ? `${entry.date}\n${new Date(entry.createdAt).toISOString().slice(11,16)} UTC` : entry.date;
+  for (let start = 0; start < trip.members.length; start += 3) {
+    const members = trip.members.slice(start,start+3);
+    heading(start ? 'Shared expenses · shares continued' : 'Shared expenses');
+    const memberWidth = 153 / Math.max(1,members.length);
+    table(
+      ['Date / time', 'Description / category', `Total (${trip.currency})`, 'Paid by', ...members.map(m => `${m.name}’s share`)],
+      [...trip.expenses.map(e => [
+        timestamp(e), `${e.title}\n${e.category}`, value(e.amount,trip.currency).toFixed(currencies[trip.currency]),
+        e.payers.map(p => name(p.memberId)).join(', '),
+        ...members.map(m => value(e.shares.find(s => s.memberId === m.id)?.amount || 0,trip.currency).toFixed(currencies[trip.currency])),
+      ]), ['TOTAL', '', value(trip.total,trip.currency).toFixed(currencies[trip.currency]), '', ...members.map(m => value(trip.balances.find(b => b.id === m.id)?.spent || 0,trip.currency).toFixed(currencies[trip.currency]))]],
+      [70,145,65,78, ...members.map(() => memberWidth)],
+    );
+  }
+  heading('Settlement summary');
+  table(['Member', 'Paid for bills', 'Share', 'Net balance'], trip.balances.map(b => [b.name,money(b.paid,trip.currency),money(b.spent,trip.currency),`${b.balance > 0 ? '+' : ''}${money(b.balance,trip.currency)}`]), [160,117,117,117]);
+  for (const settlement of trip.settlements || []) {
+    ensure(35);
+    paragraph(`${name(settlement.from)} owes ${name(settlement.to)} ${money(settlement.amount,trip.currency)}`, {strong:true});
+  }
+  if (trip.transfers.length) {
+    heading('Transfers · excluded from expenses');
+    table(['Date / time','From / to','Amount','Note'],trip.transfers.map(t => [timestamp(t),`${name(t.from)} → ${name(t.to)}`,money(t.amount,trip.currency),t.note]),[70,174,117,150]);
+  }
+  if (analytics) {
+    heading('Spending by category');
+    const totals = {};
+    for (const e of trip.expenses) totals[e.category] = (totals[e.category] || 0) + e.amount;
+    for (const [category,total] of Object.entries(totals).sort((a,b)=>b[1]-a[1])) {
+      ensure(55);
+      paragraph(`${category} · ${money(total,trip.currency)} · ${Math.round(total/trip.total*100)}%`,{size:10});
+      const y=doc.y+3;
+      doc.roundedRect(42,y,511,9,4).fill('#E8EDE0');
+      doc.roundedRect(42,y,Math.max(8,511*total/trip.total),9,4).fill('#285443');
+      doc.y=y+25;
+    }
   }
   const pages = doc.bufferedPageRange();
   for (let i = 0; i < pages.count; i++) {
@@ -282,7 +250,7 @@ export async function exportTrip(trip, format) {
       .font('Regular')
       .fontSize(8)
       .fillColor('#66725F')
-      .text(`Splitly · ${i + 1} / ${pages.count}`, 42, 810, {
+      .text(`SplitBill · ${i + 1} / ${pages.count}`, 42, 810, {
         width: 511,
         lineBreak: false,
         align: 'right',

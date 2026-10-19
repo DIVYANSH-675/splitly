@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Text } from './Typography';
-import { Avatar, C, Empty, IconButton, Sheet, s } from './ui';
+import { Avatar, C, Empty, IconButton, Page, s } from './ui';
 import { useApp } from '../lib/context';
 import type { Trip } from '../lib/types';
 export const unreadCount = (trip: Trip, seen: Record<string, string>) => {
@@ -60,8 +60,11 @@ export function Notifications({
   const events = groups
     .flatMap((t) => (t.activity || []).map((a) => ({ ...a, group: t.name })))
     .sort((a, b) => b.at.localeCompare(a.at));
+  if (!visible) return null;
   return (
-    <Sheet title="Notifications & history" visible={visible} onClose={onClose}>
+    <Page>
+      <View style={[s.row, {padding:24}]}><IconButton name="arrow-back" label="Back" onPress={onClose} /><Text style={s.h2}>Notifications</Text></View>
+      <ScrollView contentContainerStyle={{padding:24, paddingTop:0, gap:20}}>
       <Text style={s.muted}>
         Who changed what, all in one place. Updates appear while the app is open and connected.
       </Text>
@@ -122,6 +125,7 @@ export function Notifications({
           )}
         </View>
       ))}
-    </Sheet>
+      </ScrollView>
+    </Page>
   );
 }

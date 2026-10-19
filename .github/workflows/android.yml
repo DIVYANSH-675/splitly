@@ -7,10 +7,13 @@ jobs:
   android:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      matrix:
+        abi: [arm64-v8a, armeabi-v7a]
     env:
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
-      EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:4310' }}
+      EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://gomowueeizpwzzbqugod.supabase.co/functions/v1/splitbill-api' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,9 +46,9 @@ jobs:
         run: npx expo prebuild --platform android --no-install
       - name: Build standalone preview APK
         working-directory: mobile/android
-        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a --no-daemon --max-workers 2
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=${{ matrix.abi }} --no-daemon --max-workers 2
       - uses: actions/upload-artifact@v4
         with:
-          name: splitly-android-apk
+          name: splitbill-${{ matrix.abi }}-apk
           path: mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error

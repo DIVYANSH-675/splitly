@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Text } from './Typography';
+import { GroupScanner } from './GroupScanner';
 import { api } from '../lib/api';
 import { useApp } from '../lib/context';
 import { type Trip } from '../lib/types';
@@ -13,6 +14,7 @@ export function JoinGroup({
   onJoined: (t: Trip) => void;
 }) {
   const { user } = useApp();
+  const [scanning, setScanning] = useState(false);
   const [code, setCode] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -35,6 +37,7 @@ export function JoinGroup({
               placeholder="e.g. A3F102E7B5C9"
               maxLength={12}
             />
+            <Btn title="Scan group QR code" icon="qr-code-outline" secondary onPress={() => setScanning(true)} />
             <ErrorBox text={error} />
             <Btn
               title="Find group"
@@ -107,6 +110,7 @@ export function JoinGroup({
           </>
         )}
       </Sheet>
+      {scanning && <GroupScanner onClose={() => setScanning(false)} onCode={value => {setCode(value);setScanning(false);}} />}
     </>
   );
 }

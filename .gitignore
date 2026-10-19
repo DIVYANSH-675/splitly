@@ -11,3 +11,6 @@ data/
 artifacts/
 
 .claude/
+
+supabase/.temp/
+supabase/.branches/

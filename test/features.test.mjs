@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import { strict as a } from 'node:assert';
 import ExcelJS from 'exceljs';
 import { createApp } from '../server/index.mjs';
-async function fixture(t) {
-  const app = createApp({ database: ':memory:' });
+async function fixture(t, emailAuth) {
+  const app = createApp({ database: ':memory:', emailAuth });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   t.after(async () => {
     await new Promise((r) => app.server.close(r));
@@ -196,4 +196,70 @@ test('a one-page report keeps its footer on that page without blank trailing pag
   const bytes=await exportTrip({name:'Empty group',currency:'INR',members:[],expenses:[],transfers:[],activity:[],balances:[],total:0},'pdf');
   const pageObjects=bytes.toString('latin1').match(/\/Type \/Page\b/g)||[];
   a.equal(pageObjects.length,1);
+});
+
+test('custom categories, private attachments and usernames persist across members and edits', async t => {
+  const {request,response,owner,author,peer,path,body,db}=await fixture(t);
+  let group=await request(`${path}/categories`,'POST',{name:'Camping'},author.token);
+  a.ok(group.categories.includes('Camping'));
+  a.ok((await request(path,'GET',undefined,peer.token)).categories.includes('Camping'));
+  const uploaded=await request(`${path}/attachments`,'POST',{id:'file_synthetic_123456789',name:'receipt.pdf',mime:'application/pdf',data:Buffer.from('%PDF-1.4\nSynthetic test only').toString('base64')},author.token);
+  a.equal((await response(`${path}/attachments/${uploaded.id}`,'GET',undefined,peer.token)).status,404);
+  group=await request(`${path}/expenses`,'POST',{...body,category:'Camping',attachments:[uploaded]},author.token);
+  a.equal(group.expenses[0].attachments[0].name,'receipt.pdf');
+  a.equal((await response(`${path}/attachments/${uploaded.id}`,'GET',undefined,peer.token)).status,200);
+  a.equal((await response(`${path}/attachments/${uploaded.id}`)).status,401);
+  await request(`${path}/attachments`,'POST',{id:'file_invalid_1234567890',name:'bad.pdf',mime:'application/pdf',data:Buffer.from('not a PDF').toString('base64')},author.token,400);
+  group=await request(`${path}/expenses/${group.expenses[0].id}`,'PATCH',{...body,attachments:[]},owner.token);
+  a.equal(group.expenses[0].attachments.length,0);
+  a.ok(JSON.parse(db.prepare('SELECT data FROM trips WHERE id=?').get(group.id).data).categories.includes('Camping'));
+  const profile=await request('/me','PATCH',{name:'Admin',username:'unique_admin'},owner.token);
+  a.equal(profile.username,'unique_admin');
+  await request('/me','PATCH',{name:'Peer',username:'UNIQUE_ADMIN'},peer.token,409);
+  await request('/guest','POST',{name:'Duplicate',username:'unique_admin'},undefined,409);
+});
+
+test('queued group/member IDs survive sync and all mutation retries are duplicate safe', async t => {
+  const {request,owner}=await fixture(t);
+  const input={id:'op_group_1234567890',me:'op_member_123456789',memberIds:['op_guest_1234567890'],name:'Offline group',guests:['Jo'],currency:'INR',clientRequestId:'op_create_123456789'};
+  let group=await request('/trips','POST',input,owner.token,201);
+  a.equal(group.id,input.id); a.equal(group.me,input.me); a.equal(group.members[1].id,input.memberIds[0]);
+  const replay=await request('/trips','POST',input,owner.token); a.equal(replay.id,group.id);
+  const path=`/trips/${group.id}`;
+  const transfer={id:'op_transfer_123456789',from:group.me,to:group.members[1].id,amount:'75',date:'2026-10-20',clientRequestId:'op_transfer_req_123456789'};
+  group=await request(`${path}/transfers`,'POST',transfer,owner.token);
+  group=await request(`${path}/transfers`,'POST',transfer,owner.token);
+  a.equal(group.transfers.length,1); a.equal(group.total,0);
+  a.equal(group.balances.find(b=>b.id===group.me).balance,7500);
+  await request(`${path}/transfers`,'POST',{...transfer,amount:'99'},owner.token,409);
+  const remove={clientRequestId:'op_delete_req_123456789'};
+  group=await request(`${path}/transfers/${transfer.id}`,'DELETE',remove,owner.token);
+  const again=await request(`${path}/transfers/${transfer.id}`,'DELETE',remove,owner.token);
+  a.equal(again.activity.length,group.activity.length);
+  // DELETE bodies are parsed too, so a replay does not create a second audit event.
+});
+
+
+test('backup email must be verified and restores the same identity without a username', async t => {
+  const codes=new Map();
+  const emailAuth={send:async email=>{codes.set(email,'123456');}, verify:async (email,code)=>{
+    if(codes.get(email)!==code) throw Object.assign(new Error('Incorrect or expired code'),{status:401});
+    codes.delete(email);return {email,email_confirmed_at:new Date().toISOString()};
+  }};
+  const {request,owner,peer,trip}=await fixture(t,emailAuth);
+  await request('/backup-email/start','POST',{email:'owner@example.test'},owner.token);
+  await request('/backup-email/verify','POST',{email:'other@example.test',code:'123456'},owner.token,400);
+  await request('/backup-email/verify','POST',{email:'owner@example.test',code:'999999'},owner.token,401);
+  const linked=await request('/backup-email/verify','POST',{email:'owner@example.test',code:'123456'},owner.token);
+  a.equal(linked.backupEmail,'owner@example.test');
+  await request('/backup-email/start','POST',{email:'owner@example.test'},peer.token,409);
+  await request('/email-login/start','POST',{email:'missing@example.test'});
+  a.equal(codes.has('missing@example.test'),false);
+  await request('/email-login/start','POST',{email:'owner@example.test'});
+  await request('/email-login/verify','POST',{email:'owner@example.test',code:'000000'},undefined,401);
+  const recovered=await request('/email-login/verify','POST',{email:'owner@example.test',code:'123456'});
+  a.equal(recovered.user.id,owner.user.id);
+  const group=await request(`/trips/${trip.id}`,'GET',undefined,recovered.token);
+  a.equal(group.isOwner,true);
+  await request('/email-login/verify','POST',{email:'owner@example.test',code:'123456'},undefined,401);
 });

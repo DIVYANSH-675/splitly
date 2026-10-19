@@ -10,7 +10,7 @@ const host =
       ? window.location.hostname
       : 'localhost'
     : Constants.expoConfig?.hostUri?.split(':')[0] || '10.0.2.2';
-export let baseUrl = configured || `http://${host}:4310`;
+export let baseUrl = configured || (Platform.OS === 'web' ? `http://${host}:4310` : 'https://gomowueeizpwzzbqugod.supabase.co/functions/v1/splitbill-api');
 let token = '';
 export const sessionCacheKey = () => `splitly.cache:${baseUrl}:${token.slice(-16)}`;
 async function timedFetch(url: string, options: RequestInit = {}, timeout = 18000) {
@@ -44,8 +44,8 @@ export async function setApiUrl(url: string) {
   if (!/^https?:\/\/[^\s]+$/.test(clean))
     throw new Error('Enter a full server URL, for example http://192.168.1.5:4310');
   const response = await timedFetch(`${clean}/api/health`, {}, 8000);
-  if (!response.ok || (await response.json()).service !== 'Splitly API')
-    throw new Error('This address is not a Splitly server');
+  if (!response.ok || (await response.json()).service !== 'SplitBill API')
+    throw new Error('This address is not a SplitBill server');
   await setToken('');
   baseUrl = clean;
   await AsyncStorage.setItem('memogo.api', clean);
@@ -79,9 +79,9 @@ export async function api<T = unknown>(path: string, method = 'GET', body?: unkn
   return data;
 }
 
-export async function exportBytes(tripId: string, format: 'pdf' | 'xlsx') {
+export async function exportBytes(tripId: string, format: 'pdf' | 'xlsx', analytics = false) {
   const response = await timedFetch(
-    `${baseUrl}/api/trips/${tripId}/export/${format}`,
+    `${baseUrl}/api/trips/${tripId}/export/${format}?analytics=${analytics ? 1 : 0}`,
     {
       headers: { Authorization: `Bearer ${token}` },
     },
@@ -89,5 +89,11 @@ export async function exportBytes(tripId: string, format: 'pdf' | 'xlsx') {
   );
   if (!response.ok)
     throw new ApiError((await response.json()).error || 'Export failed', response.status);
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+export async function attachmentBytes(tripId: string, id: string) {
+  const response = await timedFetch(`${baseUrl}/api/trips/${tripId}/attachments/${id}`, { headers: {Authorization: `Bearer ${token}`} });
+  if (!response.ok) throw new ApiError((await response.json()).error || 'Could not open attachment', response.status);
   return new Uint8Array(await response.arrayBuffer());
 }

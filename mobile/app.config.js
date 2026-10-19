@@ -9,7 +9,7 @@ module.exports = ({ config }) => {
     ...config,
     plugins: config.plugins.map((plugin) =>
       Array.isArray(plugin) && plugin[0] === 'expo-build-properties'
-        ? ['expo-build-properties', { android: { usesCleartextTraffic: !production } }]
+        ? ['expo-build-properties', { ...plugin[1], android: { ...plugin[1].android, usesCleartextTraffic: !production } }]
         : plugin,
     ),
   };

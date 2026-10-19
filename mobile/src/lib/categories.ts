@@ -51,4 +51,4 @@ export const expenseCategories = [
 ];
 export const categoryInfo = (value: string) =>
   expenseCategories.find((category) => category.value === value) ||
-  expenseCategories[expenseCategories.length - 1];
+  {...expenseCategories[expenseCategories.length - 1], value, label: value};

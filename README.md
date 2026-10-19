@@ -1,34 +1,43 @@
-# Splitly
+# SplitBill
 
-A small Android app for shared trip expenses. Create a group, add bills, record transfers, and see who owes whom. Built with Expo / React Native and a Node.js + SQLite API.
+A simple Android app for shared bills. Add a bill or transfer, see everyone’s signed balance, and settle up. No itinerary, subscription or Google sign-in.
 
-<img src="docs/activity-preview.jpg" alt="Splitly activity history showing an expense change" width="320">
+## Android app
 
-## Get the Android app
+Get the standalone APK from [Releases](https://github.com/DIVYANSH-675/splitly/releases). Choose **arm64-v8a** for most current Android phones; **armeabi-v7a** is for older 32-bit phones. Expo Go is not required. These are preview builds, not Play Store releases.
 
-Download **Splitly-1.1.0.apk** from [Releases](https://github.com/DIVYANSH-675/splitly/releases). This is a standalone preview APK; it does not need Expo Go. A physical-device acceptance test and Play Store release have not been completed.
+The app uses the dedicated **SplitBill Supabase project** by default. It works without a local computer. First-time username registration, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
 
-The API must be running and reachable from your phone. On the welcome screen, open **Connection settings** and enter your server address. For a local computer use `http://YOUR_COMPUTER_LAN_IP:4310`, with your phone on the same Wi-Fi. A production installation should use a deployed HTTPS server. This repository does not provide hosted service or cloud backup.
+## Features
 
-## What it does
+- Start with a name and unique username. No email, password or Google account is required to start. An optional verified backup email supports passwordless recovery. The device securely retains an access token; knowing a username alone does not grant access.
+- Create a group with friends’ names. Join using an invite code or scan its QR code. An offline-created group receives its real invite code after syncing.
+- Add bills with equal, exact, percentage or weighted shares; multiple payers are supported.
+- Choose a trip category or add a permanent category shared with the group.
+- Optionally attach up to three JPG, PNG, WebP or PDF files per bill, each up to 2 MB. Files are saved on the device before upload and require group membership to download.
+- Record transfers separately: balances change, expense totals do not.
+- Green **+** means money to receive; red **−** means money owed; zero is neutral.
+- Open the notification bell for a full page showing who changed what, with timestamps and before/after details. This is an in-app history page; background push is not configured.
+- Authors edit/delete their own entries. The creator is the group admin and can edit/delete anyone’s entries. The server enforces these permissions.
+- View category graphs and each person’s share on the group page without another analytics app or large chart library.
+- Set an optional profile photo. Images are resized to 192 pixels before saving.
+- Export PDF and XLSX from Group options. PDF uses an expense ledger with date/time, description, payer, per-member shares, totals and settlements. Notification history is excluded from PDF; graphs are optional. XLSX has numeric money cells and detailed financial sheets, plus Activity.
 
-- Start with your name. No email/password required. Existing email accounts remain supported.
-- Create groups with friends’ names or join using an invite code.
-- Add bills with a category, payer, and an equal split by default. Unequal shares and multiple payers are available under **Split differently**.
-- Record transfers between people. Transfers change balances and never increase trip expenses.
-- See green **+** balances to receive, red **−** balances owed, and neutral zero balances.
-- Open the notification bell for **who changed what**, with timestamps and before/after details. The home bell covers all your groups; the group bell covers that group.
-- Edit/delete entries you created. The group creator is the admin and can edit/delete anyone’s bills and transfers. These rules are enforced by the API.
-- Add bills offline in previously opened groups. Saved bills appear separately until the server accepts them.
-- Export a group to **PDF** or **XLSX** under **Group options**. Reports include bills, payers, shares, balances, transfers, and available activity history.
+Built-in categories: Food & drinks, Travel, Stay, Activities, Groceries, Fuel, Shopping, Tickets, Rentals, Fees & tips, Health, Bills and Other. Custom categories belong to a group.
 
-Categories: Food & drinks, Travel, Stay, Activities, Groceries, Fuel, Shopping, Tickets, Rentals, Fees & tips, Health, Bills, Other.
+## Offline behavior
 
-There are no itineraries, feeds, maps, photo uploads, camera, subscriptions, or actual money transfers. The notification area is an activity inbox, not a chat feed.
+The installed Android bundle starts without the development server. After the initial online registration, cached groups open offline. Bills, attachments, transfers, custom categories, group creation/renaming, guest member edits, profile changes and confirmed bill/transfer edits/deletions are durably queued before the app acknowledges saving them.
+
+New offline bills appear separately and are excluded from confirmed totals until accepted. Other pending group changes are previewed with a waiting-to-sync label. Refreshing the server cache does not discard the mutation queue. Reconnection, foregrounding and periodic retries sync while the app is open. Request IDs prevent a lost response from duplicating a bill, transfer or group.
+
+Validation or permission failures stay visible for retry or discard. A username chosen during a profile edit may be rejected if another person has taken it. Joining an uncached group and exporting server-confirmed reports require the network; the app cannot retrieve unknown group data offline. Sync does not run after the app is closed. The localhost browser preview is not an offline PWA.
+
+Keep app data until queued changes sync. Clearing data loses drafts and device-only account access. Usernames are identifiers, not recovery credentials. Email recovery requires a previously verified backup address and an Internet connection. Delivery must be configured as described below; a username alone cannot restore access. Signing out is blocked while changes remain queued.
 
 ## Run locally
 
-Requires Node.js **22.13+** (CI uses 22.22.1).
+Node.js **22.13+** is required (CI uses 22.22.1).
 
 ```bash
 npm ci
@@ -36,43 +45,52 @@ npm --prefix mobile ci
 npm run dev
 ```
 
-- Browser preview: `http://localhost:8081`
-- API: `http://localhost:4310/api/health`
-- Expo Go: scan the development server QR on the same network; SDK 58 support is required.
-- `npm run dev:mobile` starts without the browser preview.
-- Ctrl+C stops the launcher’s API and Expo processes.
+- Preview: `http://localhost:8081`
+- Local API: `http://localhost:4310/api/health`
+- `npm run dev:mobile` starts the mobile development server without opening a browser.
+- Ctrl+C stops both launcher processes.
 
-To pin an API address, copy `mobile/.env.example` to `mobile/.env`, set `EXPO_PUBLIC_API_URL`, and restart Expo. An address saved through Connection settings takes precedence. Production EAS builds require HTTPS and disable cleartext traffic.
+Web development defaults to the local SQLite API to preserve existing demo data. Android defaults to the hosted Supabase Edge API. Set `EXPO_PUBLIC_API_URL` in `mobile/.env` to override it. Connection settings on the welcome page can select another API; a saved address takes precedence. Existing Android package and device storage keys are preserved across the rename.
 
-## Offline behavior
+## Cloud architecture
 
-Open a group online at least once before going offline. The app caches the current identity and groups, then saves new bills to a durable device queue before trying the network. Queued bills can be edited, retried, or removed. Reconnection, app foregrounding, and periodic retries trigger sync while the app is open.
+Project: `gomowueeizpwzzbqugod` in the dedicated **SplitBill** organization, Singapore region.
 
-Confirmed totals exclude queued bills. A failed validation or permission check leaves the bill visible with its error. Network retries reuse the same request ID, so a lost response does not create a duplicate. If an uncertain bill has already synced, refresh and edit the confirmed entry instead of changing its queued copy.
+- `supabase/migrations/20261019204540_splitbill_core.sql`: private `splitbill` schema for users, profiles, hashed sessions, groups, idempotency records and attachments. RLS is enabled on all app tables. A second migration adds private backup-email and verification-challenge tables. Anonymous/authenticated Data API roles have no direct access.
+- `server/core.mjs`: shared API authorization and validation. Every protected request validates its opaque session, then group membership. Creator/admin checks apply to writes.
+- `supabase/functions/splitbill-api/index.ts`: generated Edge deployment using the same finance, audit and report code as the local API. Database credentials are available only on the server. The mobile bundle has no service-role key or database password.
+- Edge transactions serialize ledger changes with a database advisory lock so concurrent requests cannot overwrite each other’s balances/history. This deliberately simple deployment targets small groups; higher request volumes should partition locking and group storage.
+- Attachments are private database records rather than public URLs. They consume database quota; review free-plan usage and retain backups before production use.
 
-Offline mode supports adding bills; creating/joining groups, changing confirmed entries, transfers, and exports require the API. Android’s installed bundle opens without the development server; the browser development preview itself is not a PWA and does not promise a cold start without its web server. Sync does not run while the app is closed.
+To regenerate and deploy after changing server code:
 
-Keep device app data until pending bills sync. Sign-out is blocked while bills remain queued. Clearing app data loses local drafts and a name-only identity; account recovery is not configured.
+```bash
+node scripts/build-edge.mjs
+supabase functions deploy splitbill-api --project-ref gomowueeizpwzzbqugod
+```
 
-## Notifications and history
+The function uses custom device-session authentication (`verify_jwt = false` for the legacy Supabase gateway check). Membership and author/admin validation happen inside the API. Deploy the migration before the function when provisioning another project. The current project’s schema was applied through its dashboard and verified there.
 
-The activity inbox refreshes while the app is open and connected (up to about 15 seconds). Unread markers are stored on this device. No background push notification service is configured.
+Local SQLite defaults to `data/memogo.sqlite` for compatibility. Override with `SPLITLY_DB` or change `PORT`. Existing local data is preserved; it is **not automatically copied to the separate cloud project**.
 
-The API retains all new audit entries until the group is deleted. Historical entries saved by older versions are shown too, but details previously discarded by the old 300-entry limit cannot be reconstructed. New edits record the actual actor and old/new amounts, category, payer/share allocations, dates, notes, member names, or group settings.
+## Backup email delivery setup
 
-## Exports
+Settings → Backup email verifies an address before it can recover an account. The welcome screen’s **Sign in with backup email** requests a code, then restores the same user ID, username, groups and admin rights after verification. Codes are single-use; an email address alone never grants access. Verification requires the network and is not queued offline.
 
-Open a group → **⋯ Group options** → **Export PDF** or **Export XLSX**. Android opens its share/save sheet; the browser downloads the file. Exports require a connection and group membership. Only confirmed server records are included, and the app flags queued bills that are excluded.
+The recovery routes and UI are implemented and covered by tests with an injected OTP provider. **Public email delivery is not configured on this preview project.** Supabase’s free default email service is restricted to team addresses, uses default sign-in links, and does not permit editing those templates. Do not mark delivery ready until the following setup is complete:
 
-XLSX contains Summary, Balances, Expenses, Shares, Payers, Transfers, and Activity sheets. Monetary cells are numeric and use the group currency. PDF includes the same financial records and full available history. Exported reports are snapshots, not imports or editable app backups.
+1. In Supabase Authentication → Emails → SMTP Settings, configure a transactional email provider and its verified sender.
+2. Set both **Confirm sign up** and **Magic link or OTP** templates to include `{{ .Token }}`. Ready-to-use subject/body examples are in `docs/email-templates/`.
+3. Set Edge secret `SPLITBILL_EMAIL_OTP_READY=true` only after testing delivery and code verification. The runtime already provides `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Local development requires these variables too.
+4. Test adding a backup email, signing out, and recovering the same account from another device. Check rate limits and spam delivery.
 
-## Android APK build
+Until configured, adding a backup email returns a clear setup message and does not send a link that the code-entry screen cannot use. No SMTP password, service role key, real email code or recovery token belongs in this repository.
 
-The [Android APK workflow](.github/workflows/android.yml) is manually triggered from GitHub Actions. It installs pinned dependencies, runs tests/typecheck/lint, generates Android files with Expo prebuild, builds an ARM preview APK, and uploads `splitly-android-apk`. Generated Android/iOS directories are not committed.
+## Android builds
 
-Set the repository variable `EXPO_PUBLIC_API_URL` before building to choose the preview server. Otherwise the APK defaults to the Android emulator host (`http://10.0.2.2:4310`); a physical phone must change this under Connection settings.
+[Android APK workflow](.github/workflows/android.yml) runs tests, typecheck and lint, generates the native project, and builds separate ARM64/ARMv7 APKs. R8 minification, resource shrinking and bundle compression are enabled to reduce download size. Native Android/iOS directories are generated and not committed.
 
-The preview uses the generated Android debug signing key. Production signing, HTTPS hosting, backups, EAS credentials, and store submission need separate setup. `mobile/eas.json` also includes an internal APK profile for an EAS-enabled account.
+The repository variable `EXPO_PUBLIC_API_URL` chooses the backend at build time. Preview builds use a generated debug signing key. Production signing, a stable release key, Play Store submission, operational backups and physical-device acceptance testing need separate setup. `mobile/eas.json` also provides EAS build profiles.
 
 ## Verification
 
@@ -85,31 +103,23 @@ npx expo-doctor
 npx expo export --platform android --platform web --max-workers 2
 ```
 
-See [VALIDATION.md](VALIDATION.md) for completed checks and limitations. Tests cover integer rounding and splits, permissions, transfers, audit retention, offline queue durability/concurrency, idempotent sync, and PDF/XLSX financial reconciliation.
+See [VALIDATION.md](VALIDATION.md) for exact completed checks and remaining device-level limits. Tests cover rounding/splits, permissions, private attachments, shared categories, username uniqueness, transfers, audit changes, durable queue behavior, offline projections, idempotent writes and financial export reconciliation.
 
-## Project map
+## Source map
 
 ```text
-mobile/src/app/          Expo Router entry points
-mobile/src/screens/      Welcome, home, group, profile
-mobile/src/components/   Forms, activity inbox, pending bills, UI
-mobile/src/lib/          API, cached state, offline queue, types
-server/index.mjs        Authenticated HTTP API and SQLite storage
-server/finance.mjs      Integer currency arithmetic and settlements
-server/audit.mjs        Before/after audit snapshots
-server/export.mjs       PDF and XLSX report generation
-test/                   API, finance, export and offline tests
-.github/workflows/      Android preview APK build
+mobile/src/app/             Expo Router pages
+mobile/src/components/      Forms, full-page history, analytics, QR, pending changes
+mobile/src/lib/             API, finance, cached state, durable queues, files
+server/index.mjs            Local SQLite HTTP adapter
+server/core.mjs             Shared API permissions and operations
+server/audit.mjs            Before/after audit snapshots
+server/export.mjs           PDF ledger and XLSX reports
+scripts/build-edge.mjs      Reproducible dashboard-ready Edge source
+supabase/                   Private database migration and Edge Function
+.github/workflows/          Standalone Android builds
 ```
 
-## Storage and deployment
+The repository excludes databases, device sessions, `.env` files, build caches and credentials. The GitHub token is not part of the app.
 
-SQLite defaults to `data/memogo.sqlite` for compatibility with earlier local versions. Set `SPLITLY_DB` to choose another path and `PORT` to change the API port. Back up the database using SQLite’s backup facilities. Devices store access tokens in native secure storage (browser preview uses local storage); cached group data and queued bills use app-local storage. The API authenticates every request and checks group membership.
-
-The source repository excludes SQLite databases, device sessions, `.env` files, build caches, and credentials. The GitHub access token is not part of the application. Do not expose the local HTTP development API to the public Internet without HTTPS deployment and an appropriate operating/security review. Dependency audit findings and production limitations are recorded in VALIDATION.md.
-
-## Design and attribution
-
-Warm ivory, forest green, lime accents, bundled Manrope typography, and code-drawn receipt artwork. Motion respects the system reduced-motion setting. Manrope is distributed under the included [font license](server/assets/Manrope-LICENSE.txt).
-
-Workflow inspiration: [Kittysplit](https://www.kittysplit.com/en/help) and the [Splitwise redesign](https://blog.splitwise.com/2019/07/09/splitwise-redesigned/). No third-party application artwork is included.
+Warm ivory, forest green, lime accents and bundled Manrope. Artwork is drawn in code; no third-party app artwork is copied. Manrope uses the included [font license](server/assets/Manrope-LICENSE.txt). Workflow inspiration: [Kittysplit](https://www.kittysplit.com/en/help).

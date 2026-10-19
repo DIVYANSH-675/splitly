@@ -1,9 +1,11 @@
-Splitly 1.1.0 Android preview
+# SplitBill 1.2.0 preview
 
-- Simple shared bills, trip categories, and transfers that stay outside expenses.
-- Notification inbox with who changed what and before/after details.
-- Creator-only edits, with group-admin access to all entries.
-- Durable offline bill entry in cached groups, automatic sync, and duplicate-safe retries.
-- PDF and XLSX reports with balances, bills, shares, payers, transfers and history.
+- Rename the app to SplitBill while retaining the Android package and existing device storage.
+- Add private optional bill attachments, group-wide custom categories and a resized profile photo.
+- Add unique usernames, QR group joining, category analytics and full-page notifications.
+- Extend durable offline saving to transfers and group/member/profile edits.
+- Host the authenticated API and private database in the dedicated Supabase project.
+- Replace PDF history with a financial ledger, individual share columns and optional graphs.
+- Build smaller separate ARM64 and ARMv7 preview APKs with release shrinking enabled.
 
-Install the APK on Android, keep the API running, and use Connection settings on the welcome screen to choose the server. For local testing, your phone and API computer must be on the same network. This preview uses development signing; physical-device acceptance testing and production hosting are not complete.
+Preview signing uses generated debug credentials. Store submission and physical-device acceptance remain separate.
