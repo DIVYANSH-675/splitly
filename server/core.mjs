@@ -349,10 +349,10 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
           const recorded = JSON.parse(previous.response);
           if (recorded.members) {
             const latest = await db.prepare('SELECT data FROM trips WHERE id=?').get(recorded.id);
-            return await send(
-              200,
-              latest ? await decorate(JSON.parse(latest.data), user) : { ok: true },
-            );
+            if (!latest) return await send(200, {ok:true});
+            const currentTrip=JSON.parse(latest.data);
+            assert(currentTrip.members.some(member=>member.userId===user.id),'You do not have access to this group',403);
+            return await send(200, await decorate(currentTrip,user));
           }
           return await send(200, recorded.profile ? await publicUser(user) : recorded);
         }
@@ -489,8 +489,10 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
         }
         assert(req.method === 'POST', 'Method not allowed', 405);
         assert(Object.hasOwn(currencies, body.currency || 'INR'), 'Choose a supported currency');
+        const tripId=clientId(body.id);
+        assert(!(await db.prepare('SELECT id FROM trips WHERE id=?').get(tripId)), 'Group ID already exists',409);
         const trip = {
-          id: clientId(body.id),
+          id: tripId,
           code: randomBytes(6).toString('hex').toUpperCase(),
           ownerId: user.id,
           name: text(body.name, 'Group name', 80),
@@ -512,6 +514,7 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
               name: text(name, 'Guest name', 60),
             });
         }
+        assert(new Set(trip.members.map(member=>member.id)).size===trip.members.length,'Member IDs must be unique');
         event(trip, user, 'created the group');
         await save(trip);
         return await send(201, await decorate(trip, user));
@@ -652,6 +655,7 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
             !linked || !trip.members.some((m) => m.userId === linked.id),
             'This user is already a member',
           );
+          assert(!trip.members.some(member=>member.id===body.id),'Member ID already exists',409);
           trip.members.push({
             id: clientId(body.id),
             name: text(body.name || linked?.name, 'Member name', 60),
@@ -712,6 +716,7 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
             'Only its author or group creator can edit this expense',
             403,
           );
+          assert(req.method !== 'POST' || !trip.expenses.some(entry=>entry.id===body.id),'Bill ID already exists',409);
           assert(trip.expenses.length < 3000 || existing, 'Group expense limit reached');
           assert(body.receipt === undefined, 'Use the attachment picker to add a file');
           const files = body.attachments ?? existing?.attachments ?? [];
@@ -789,6 +794,7 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
           member(body.from);
           member(body.to);
           assert(body.from !== body.to, 'Choose two different members');
+          assert(req.method !== 'POST' || !trip.transfers.some(entry=>entry.id===body.id),'Transfer ID already exists',409);
           assert(trip.transfers.length < 3000 || existing, 'Transfer limit reached');
           const transfer = {
             id: existing?.id || clientId(body.id),

@@ -264,3 +264,26 @@ test('backup email must be verified and restores the same identity without a use
   a.equal(group.isOwner,true);
   await request('/email-login/verify','POST',{email:'owner@example.test',code:'123456'},undefined,401);
 });
+
+
+test('offline entity IDs cannot replace another group or collide with ledger entries', async t => {
+ const {request,owner,author,trip,path,body}=await fixture(t);
+ await request('/trips','POST',{id:trip.id,name:'Replacement attempt'},author.token,409);
+ const unchanged=await request(path,'GET',undefined,owner.token);
+ a.equal(unchanged.ownerId,owner.user.id);a.equal(unchanged.name,trip.name);
+ await request(path+'/expenses','POST',{...body,id:'bill_collision_123456789'},author.token);
+ await request(path+'/expenses','POST',{...body,id:'bill_collision_123456789'},author.token,409);
+ const transfer={id:'transfer_collision_123456789',from:trip.members[0].id,to:trip.members[1].id,amount:'1',date:'2026-10-20'};
+ await request(path+'/transfers','POST',transfer,author.token);
+ await request(path+'/transfers','POST',transfer,author.token,409);
+ const final=await request(path,'GET',undefined,owner.token);
+ a.equal(final.expenses.length,1);a.equal(final.transfers.length,1);
+});
+test('replaying an old request does not let a removed member read the group', async t=>{
+ const {request,owner,peer,trip,path}=await fixture(t);
+ const body={name:'Camping',clientRequestId:'op_removed_member_123456789'};
+ await request(path+'/categories','POST',body,peer.token);
+ await request(path+'/members/'+trip.members[2].id,'DELETE',undefined,owner.token);
+ await request(path+'/categories','POST',body,peer.token,403);
+ await request(path,'GET',undefined,peer.token,403);
+});

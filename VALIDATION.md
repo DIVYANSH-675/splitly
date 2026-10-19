@@ -2,12 +2,13 @@
 
 ## Completed
 
-- Node API/finance/offline tests: 26 passing. Includes exact integer splits, transfers outside expense totals, creator/admin rights, full audit diffs, durable queue restart/concurrency/failure behavior, offline group/transfer/category projection, stable IDs, duplicate-safe writes/deletes, private attachment validation/access, persistent custom categories and unique usernames.
+- Node API/finance/offline tests: 28 passing. Includes exact integer splits, transfers outside expense totals, creator/admin rights, full audit diffs, durable queue restart/concurrency/failure behavior, offline group/transfer/category projection, stable IDs, duplicate-safe writes/deletes, private attachment validation/access, persistent custom categories and unique usernames. Caller-generated IDs cannot overwrite another group, duplicate entry IDs are rejected, and request replay rechecks current membership.
 - Backup email: injected-provider integration test proves that an unverified email cannot recover an account; wrong/reused codes fail; another user cannot claim a linked email; successful email-code login restores the same user ID and group/admin rights. No real email or code is printed or included in source.
 - Mobile TypeScript and ESLint passed after feature changes.
 - Expo web and Android/Hermes exports passed. Android bundle was about 3.6 MB before final packaging; this is not the APK size.
 - Dedicated free Supabase organization and project created under the requested developer account. Project `gomowueeizpwzzbqugod` is in Singapore. Eight private app tables were created through the dashboard; the final eight-table check returned RLS=true and anonymous SELECT=false for every table.
 - Live cloud API smoke test passed: usernames, group join/access denial, shared category, private PDF upload, idempotent bill replay, peer edit denial, transfer excluded from spending, PDF and XLSX exports.
+- Supabase Security Advisor reported zero errors and zero warnings. Eight informational notices reflect the deliberate private-table default-deny policy.
 - Live exported PDF rendered and inspected: correct date/time, dynamic member shares, totals, settlements, transfers and graph. Notification history is absent. XLSX contains numeric financial data and audit details.
 - Browser with the cloud API blocked: created a group, added a custom category, attached a PDF, saved a bill and transfer, reloaded. All four pending changes and the attachment remained. After unblocking, exactly one bill and transfer appeared; total was INR 240, each share INR 120, and payer balance INR +150 (including a separate INR 30 transfer).
 - Browser profile photo selection, resize, save and reload passed; the test photo was then removed. Full-page notifications and same-page analytics passed visual/DOM checks. Group invite QR is generated; camera scanning needs a device check.

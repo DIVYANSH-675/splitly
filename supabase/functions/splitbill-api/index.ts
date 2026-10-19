@@ -231,6 +231,7 @@ const bold = Buffer.from('AAEAAAAPAIAAAwBwR1BPU3EucYgAAEZIAAA1YkdTVUKYP7EkAAAf0A
 const value = (n, c) => n / 10 ** currencies[c];
 const money = (n, c) =>
   `${c} ${value(n, c).toLocaleString('en-IN', { minimumFractionDigits: currencies[c], maximumFractionDigits: currencies[c] })}`;
+const ledgerDate = entry => entry.createdAt ? `${entry.date}\nLogged ${new Date(entry.createdAt).toISOString().slice(0,16).replace('T',' ')} UTC` : entry.date;
 async function exportTrip(trip, format, { analytics = false } = {}) {
   const name = (id) => trip.members.find((m) => m.id === id)?.name || 'Former member';
   if (format === 'xlsx') {
@@ -250,7 +251,7 @@ async function exportTrip(trip, format, { analytics = false } = {}) {
       ws.eachRow((row, index) => {
         row.alignment = { vertical: 'top', wrapText: true };
         if (index > 1) {
-          row.height = title === 'Activity' ? 48 : 34;
+          row.height = ['Activity','Expenses','Transfers'].includes(title) ? 54 : 34;
           row.font = { name: 'Calibri', size: 11 };
         }
       });
@@ -295,10 +296,10 @@ async function exportTrip(trip, format, { analytics = false } = {}) {
     );
     sheet(
       'Expenses',
-      ['ID', 'Date / time', 'Description', 'Category', 'Paid by', 'Amount', 'Split method', 'Note'],
+      ['ID', 'Bill date / logged UTC', 'Description', 'Category', 'Paid by', 'Amount', 'Split method', 'Note'],
       trip.expenses.map((e) => [
         e.id,
-        e.createdAt ? `${e.date} ${e.createdAt.slice(11,19)} UTC` : e.date,
+        ledgerDate(e),
         e.title,
         e.category,
         e.payers.map((p) => name(p.memberId)).join(', '),
@@ -306,7 +307,7 @@ async function exportTrip(trip, format, { analytics = false } = {}) {
         e.mode,
         e.note,
       ]),
-      [38, 16, 38, 22, 32, 23, 18, 40],
+      [38, 28, 38, 22, 32, 23, 18, 40],
       [6],
     );
     sheet(
@@ -329,15 +330,15 @@ async function exportTrip(trip, format, { analytics = false } = {}) {
     );
     sheet(
       'Transfers',
-      ['Date', 'From', 'To', 'Amount', 'Note'],
+      ['Transfer date / logged UTC', 'From', 'To', 'Amount', 'Note'],
       trip.transfers.map((t) => [
-        t.date,
+        ledgerDate(t),
         name(t.from),
         name(t.to),
         value(t.amount, trip.currency),
         t.note,
       ]),
-      [16, 30, 30, 23, 45],
+      [28, 30, 30, 23, 45],
       [4],
     );
     sheet(
@@ -427,13 +428,13 @@ async function exportTrip(trip, format, { analytics = false } = {}) {
   paragraph(trip.name, {size:14, strong:true});
   paragraph(`Exported ${new Date().toISOString()} · ${trip.currency} · Confirmed records`, {size:8,color:'#66725F'});
   paragraph('Transfers are recorded separately and excluded from shared expenses.', {size:8});
-  const timestamp = (entry) => entry.createdAt ? `${entry.date}\n${new Date(entry.createdAt).toISOString().slice(11,16)} UTC` : entry.date;
+  const timestamp = ledgerDate;
   for (let start = 0; start < trip.members.length; start += 3) {
     const members = trip.members.slice(start,start+3);
     heading(start ? 'Shared expenses · shares continued' : 'Shared expenses');
     const memberWidth = 153 / Math.max(1,members.length);
     table(
-      ['Date / time', 'Description / category', `Total (${trip.currency})`, 'Paid by', ...members.map(m => `${m.name}’s share`)],
+      ['Bill date / logged UTC', 'Description / category', `Total (${trip.currency})`, 'Paid by', ...members.map(m => `${m.name}’s share`)],
       [...trip.expenses.map(e => [
         timestamp(e), `${e.title}\n${e.category}`, value(e.amount,trip.currency).toFixed(currencies[trip.currency]),
         e.payers.map(p => name(p.memberId)).join(', '),
@@ -450,7 +451,7 @@ async function exportTrip(trip, format, { analytics = false } = {}) {
   }
   if (trip.transfers.length) {
     heading('Transfers · excluded from expenses');
-    table(['Date / time','From / to','Amount','Note'],trip.transfers.map(t => [timestamp(t),`${name(t.from)} → ${name(t.to)}`,money(t.amount,trip.currency),t.note]),[70,174,117,150]);
+    table(['Date / logged UTC','From / to','Amount','Note'],trip.transfers.map(t => [timestamp(t),`${name(t.from)} → ${name(t.to)}`,money(t.amount,trip.currency),t.note]),[70,174,117,150]);
   }
   if (analytics) {
     heading('Spending by category');
@@ -883,10 +884,10 @@ function createHandler(db, attempts = new Map(), emailAuth = createEmailAuth()) 
           const recorded = JSON.parse(previous.response);
           if (recorded.members) {
             const latest = await db.prepare('SELECT data FROM trips WHERE id=?').get(recorded.id);
-            return await send(
-              200,
-              latest ? await decorate(JSON.parse(latest.data), user) : { ok: true },
-            );
+            if (!latest) return await send(200, {ok:true});
+            const currentTrip=JSON.parse(latest.data);
+            assert(currentTrip.members.some(member=>member.userId===user.id),'You do not have access to this group',403);
+            return await send(200, await decorate(currentTrip,user));
           }
           return await send(200, recorded.profile ? await publicUser(user) : recorded);
         }
@@ -1023,8 +1024,10 @@ function createHandler(db, attempts = new Map(), emailAuth = createEmailAuth()) 
         }
         assert(req.method === 'POST', 'Method not allowed', 405);
         assert(Object.hasOwn(currencies, body.currency || 'INR'), 'Choose a supported currency');
+        const tripId=clientId(body.id);
+        assert(!(await db.prepare('SELECT id FROM trips WHERE id=?').get(tripId)), 'Group ID already exists',409);
         const trip = {
-          id: clientId(body.id),
+          id: tripId,
           code: randomBytes(6).toString('hex').toUpperCase(),
           ownerId: user.id,
           name: inputText(body.name, 'Group name', 80),
@@ -1046,6 +1049,7 @@ function createHandler(db, attempts = new Map(), emailAuth = createEmailAuth()) 
               name: inputText(name, 'Guest name', 60),
             });
         }
+        assert(new Set(trip.members.map(member=>member.id)).size===trip.members.length,'Member IDs must be unique');
         event(trip, user, 'created the group');
         await save(trip);
         return await send(201, await decorate(trip, user));
@@ -1186,6 +1190,7 @@ function createHandler(db, attempts = new Map(), emailAuth = createEmailAuth()) 
             !linked || !trip.members.some((m) => m.userId === linked.id),
             'This user is already a member',
           );
+          assert(!trip.members.some(member=>member.id===body.id),'Member ID already exists',409);
           trip.members.push({
             id: clientId(body.id),
             name: inputText(body.name || linked?.name, 'Member name', 60),
@@ -1246,6 +1251,7 @@ function createHandler(db, attempts = new Map(), emailAuth = createEmailAuth()) 
             'Only its author or group creator can edit this expense',
             403,
           );
+          assert(req.method !== 'POST' || !trip.expenses.some(entry=>entry.id===body.id),'Bill ID already exists',409);
           assert(trip.expenses.length < 3000 || existing, 'Group expense limit reached');
           assert(body.receipt === undefined, 'Use the attachment picker to add a file');
           const files = body.attachments ?? existing?.attachments ?? [];
@@ -1323,6 +1329,7 @@ function createHandler(db, attempts = new Map(), emailAuth = createEmailAuth()) 
           member(body.from);
           member(body.to);
           assert(body.from !== body.to, 'Choose two different members');
+          assert(req.method !== 'POST' || !trip.transfers.some(entry=>entry.id===body.id),'Transfer ID already exists',409);
           assert(trip.transfers.length < 3000 || existing, 'Transfer limit reached');
           const transfer = {
             id: existing?.id || clientId(body.id),
