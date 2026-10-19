@@ -617,19 +617,22 @@ function createHandler(db, attempts = new Map(), emailAuth = createEmailAuth()) 
       .prepare('INSERT INTO trips VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data')
       .run(trip.id, trip.code, JSON.stringify(trip));
   };
-  const publicUser = async (user) => ({
-    backupEmail:
-      (await db.prepare('SELECT email FROM backup_emails WHERE user_id=?').get(user.id))?.email ||
-      '',
-    ...((await db.prepare('SELECT username,photo FROM profiles WHERE user_id=?').get(user.id)) || {
-      username: '',
-      photo: '',
-    }),
-    id: user.id,
-    name: user.name,
-    email: user.email.endsWith('@guest.splitly.local') ? '' : user.email,
-    guest: user.email.endsWith('@guest.splitly.local'),
-  });
+  const publicUser = async (user) => {
+    let profile=await db.prepare('SELECT username,photo FROM profiles WHERE user_id=?').get(user.id);
+    if (!profile) {
+      // Older device identities predate usernames; preserve their ID and group access.
+      let username;
+      do {username=`user_${randomBytes(9).toString('hex')}`;} while (await db.prepare('SELECT user_id FROM profiles WHERE username=?').get(username));
+      await db.prepare('INSERT INTO profiles(user_id,username,photo) VALUES(?,?,?)').run(user.id,username,'');
+      profile={username,photo:''};
+    }
+    return {
+      backupEmail:(await db.prepare('SELECT email FROM backup_emails WHERE user_id=?').get(user.id))?.email || '',
+      ...profile,id:user.id,name:user.name,
+      email:user.email.endsWith('@guest.splitly.local') ? '' : user.email,
+      guest:user.email.endsWith('@guest.splitly.local'),
+    };
+  };
   const decorate = async (trip, user) => {
     const decoratedMembers = await Promise.all(
       trip.members.map(async ({ userId, ...m }) => ({
@@ -942,10 +945,11 @@ function createHandler(db, attempts = new Map(), emailAuth = createEmailAuth()) 
       if (segments[1] === 'me') {
         if (req.method === 'PATCH') {
           const current = await publicUser(user);
+          const nextName = inputText(body.name ?? user.name, 'Name', 60);
           const username = String(body.username ?? current.username ?? '')
             .trim()
             .toLowerCase();
-          if (username) {
+          {
             assert(/^[a-z0-9_]{3,24}$/.test(username), 'Use 3–24 letters, numbers or underscores');
             const taken = await db
               .prepare('SELECT user_id FROM profiles WHERE username=?')
@@ -965,7 +969,7 @@ function createHandler(db, attempts = new Map(), emailAuth = createEmailAuth()) 
                 'INSERT INTO profiles(user_id,username,photo) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET username=excluded.username,photo=excluded.photo',
               )
               .run(user.id, username, photo);
-          user.name = inputText(body.name ?? user.name, 'Name', 60);
+          user.name = nextName;
           await db.prepare('UPDATE users SET name=? WHERE id=?').run(user.name, user.id);
           for (const row of await db.prepare('SELECT data FROM trips').all()) {
             const group = JSON.parse(row.data);
@@ -1377,7 +1381,10 @@ Deno.serve(async (request) => {
       return await sql.begin(async transaction => {
         // A small ledger service: one transactional lock prevents lost updates across isolates.
         // All authorization, idempotency, group changes and history commit atomically.
-        await transaction`select pg_advisory_xact_lock(6751200)`;
+        await transaction.unsafe("set local statement_timeout = '15s'");
+        await transaction.unsafe("set local lock_timeout = '10s'");
+        if (!/^\/api\/(backup-email|email-login)\//.test(path)) await transaction`select pg_advisory_xact_lock(6751200)`;
+        await transaction.unsafe('set local role splitbill_api');
         const db = {prepare(statement) {
           let n=0; const query=statement.replace(/\?/g,()=>'$'+(++n));
           const run=(...params)=>transaction.unsafe(query,params);

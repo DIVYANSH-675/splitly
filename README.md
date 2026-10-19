@@ -4,7 +4,7 @@ A simple Android app for shared bills. Add a bill or transfer, see everyone’s 
 
 ## Android app
 
-Get the standalone APK from [Releases](https://github.com/DIVYANSH-675/splitly/releases). Choose **arm64-v8a** for most current Android phones; **armeabi-v7a** is for older 32-bit phones. Expo Go is not required. These are preview builds, not Play Store releases.
+Get the standalone APK from [Releases](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.2.0): [ARM64 APK (36.8 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.0/SplitBill-1.2.0-arm64-v8a.apk) or [older 32-bit APK (27.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.0/SplitBill-1.2.0-armeabi-v7a.apk). Choose **arm64-v8a** for most current Android phones; **armeabi-v7a** is for older 32-bit phones. Expo Go is not required. These are preview builds, not Play Store releases.
 
 The app uses the dedicated **SplitBill Supabase project** by default. It works without a local computer. First-time username registration, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
 
@@ -58,9 +58,9 @@ Web development defaults to the local SQLite API to preserve existing demo data.
 
 Project: `gomowueeizpwzzbqugod` in the dedicated **SplitBill** organization, Singapore region.
 
-- `supabase/migrations/20261019204540_splitbill_core.sql`: private `splitbill` schema for users, profiles, hashed sessions, groups, idempotency records and attachments. RLS is enabled on all app tables. A second migration adds private backup-email and verification-challenge tables. Anonymous/authenticated Data API roles have no direct access.
+- `supabase/migrations/20261019204540_splitbill_core.sql`: private `splitbill` schema for users, profiles, hashed sessions, groups, idempotency records and attachments. RLS is enabled on all app tables. Runtime queries assume a non-login role restricted to this private schema. A second migration adds private backup-email and verification-challenge tables. Anonymous/authenticated Data API roles have no direct access.
 - `server/core.mjs`: shared API authorization and validation. Every protected request validates its opaque session, then group membership. Creator/admin checks apply to writes.
-- `supabase/functions/splitbill-api/index.ts`: generated Edge deployment using the same finance, audit and report code as the local API. Database credentials are available only on the server. The mobile bundle has no service-role key or database password.
+- `supabase/functions/splitbill-api/index.ts`: generated Edge deployment using the same finance, audit and report code as the local API. Database credentials are available only on the server; app queries run as `splitbill_api`, with bounded statement/lock timeouts. The mobile bundle has no service-role key or database password.
 - Edge transactions serialize ledger changes with a database advisory lock so concurrent requests cannot overwrite each other’s balances/history. This deliberately simple deployment targets small groups; higher request volumes should partition locking and group storage.
 - Attachments are private database records rather than public URLs. They consume database quota; review free-plan usage and retain backups before production use.
 
@@ -70,6 +70,8 @@ To regenerate and deploy after changing server code:
 node scripts/build-edge.mjs
 supabase functions deploy splitbill-api --project-ref gomowueeizpwzzbqugod
 ```
+
+Apply all three migration files when provisioning a fresh project. The final migration restricts runtime database privileges and adds the attachment-user foreign-key index.
 
 The function uses custom device-session authentication (`verify_jwt = false` for the legacy Supabase gateway check). Membership and author/admin validation happen inside the API. Deploy the migration before the function when provisioning another project. The current project’s schema was applied through its dashboard and verified there.
 

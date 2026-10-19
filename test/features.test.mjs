@@ -287,3 +287,19 @@ test('replaying an old request does not let a removed member read the group', as
  await request(path+'/categories','POST',body,peer.token,403);
  await request(path,'GET',undefined,peer.token,403);
 });
+
+
+test('legacy identities gain a username and can save a photo without losing group ownership', async t=>{
+ const {request,owner,trip,db}=await fixture(t);
+ db.prepare('DELETE FROM profiles WHERE user_id=?').run(owner.user.id);
+ const restored=await request('/me','GET',undefined,owner.token);
+ a.equal(restored.id,owner.user.id);a.match(restored.username,/^user_[a-f0-9]{18}$/);
+ const photo='data:image/jpeg;base64,/9j/2Q==';
+ const profile=await request('/me','PATCH',{name:'Admin',photo},owner.token);
+ a.equal(profile.photo,photo);a.equal(profile.username,restored.username);
+ await request('/me','PATCH',{name:'',username:'should_not_be_saved',photo:''},owner.token,400);
+ const afterInvalid=await request('/me','GET',undefined,owner.token);
+ a.equal(afterInvalid.username,restored.username);a.equal(afterInvalid.photo,photo);
+ a.equal((await request('/trips/'+trip.id,'GET',undefined,owner.token)).isOwner,true);
+ await request('/me','PATCH',{name:'Admin',username:'',photo},owner.token,400);
+});

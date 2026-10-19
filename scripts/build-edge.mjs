@@ -38,7 +38,10 @@ Deno.serve(async (request) => {
       return await sql.begin(async transaction => {
         // A small ledger service: one transactional lock prevents lost updates across isolates.
         // All authorization, idempotency, group changes and history commit atomically.
-        await transaction\x60select pg_advisory_xact_lock(6751200)\x60;
+        await transaction.unsafe("set local statement_timeout = '15s'");
+        await transaction.unsafe("set local lock_timeout = '10s'");
+        if (!/^\\/api\\/(backup-email|email-login)\\//.test(path)) await transaction\x60select pg_advisory_xact_lock(6751200)\x60;
+        await transaction.unsafe('set local role splitbill_api');
         const db = {prepare(statement) {
           let n=0; const query=statement.replace(/\\?/g,()=>'$'+(++n));
           const run=(...params)=>transaction.unsafe(query,params);
