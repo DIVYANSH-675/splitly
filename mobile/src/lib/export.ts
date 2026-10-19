@@ -23,7 +23,7 @@ export async function shareReport(tripId: string, format: 'pdf' | 'xlsx') {
     if (!(await Sharing.isAvailableAsync()))
       throw new Error('File sharing is unavailable on this device.');
     const file = new File(Paths.cache, name);
-    file.write(bytes);
+    await file.write(bytes);
     await Sharing.shareAsync(file.uri, {
       mimeType,
       dialogTitle: `Export ${format.toUpperCase()} report`,

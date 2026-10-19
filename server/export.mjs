@@ -176,6 +176,7 @@ export async function exportTrip(trip, format) {
         doc.addPage();
         if (!header) render(headers, true);
       }
+      doc.font(header ? 'Bold' : 'Regular').fontSize(9);
       const y = doc.y;
       let x = 42;
       if (header) doc.rect(42, y, 511, h).fill('#193E30');
@@ -275,6 +276,8 @@ export async function exportTrip(trip, format) {
   const pages = doc.bufferedPageRange();
   for (let i = 0; i < pages.count; i++) {
     doc.switchToPage(i);
+    const bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
     doc
       .font('Regular')
       .fontSize(8)
@@ -284,6 +287,7 @@ export async function exportTrip(trip, format) {
         lineBreak: false,
         align: 'right',
       });
+    doc.page.margins.bottom = bottom;
   }
   doc.end();
   return complete;

@@ -190,3 +190,10 @@ test('PDF/XLSX exports require membership and reconcile expenses, transfers, sha
   a.equal(bytes.subarray(0, 5).toString(), '%PDF-');
   a.ok(bytes.length > 5000);
 });
+
+test('a one-page report keeps its footer on that page without blank trailing pages',async()=>{
+  const {exportTrip}=await import('../server/export.mjs');
+  const bytes=await exportTrip({name:'Empty group',currency:'INR',members:[],expenses:[],transfers:[],activity:[],balances:[],total:0},'pdf');
+  const pageObjects=bytes.toString('latin1').match(/\/Type \/Page\b/g)||[];
+  a.equal(pageObjects.length,1);
+});

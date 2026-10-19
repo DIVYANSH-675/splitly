@@ -58,9 +58,11 @@ The prior Expo dependency audit findings remain unresolved; removing camera/medi
 
 ## 1.1.0 — activity, offline bills, exports and Android packaging
 
-- 20 automated tests pass. Added author/admin/peer permission checks for bills and transfers, immutable creator ownership, detailed audit changes, retention beyond 300 entries, and idempotent retries including deleted bills and mismatched retry payloads.
+- 21 automated tests pass. Added author/admin/peer permission checks for bills and transfers, immutable creator ownership, detailed audit changes, retention beyond 300 entries, and idempotent retries including deleted bills and mismatched retry payloads.
 - Offline queue tests cover restart recovery, network failure, validation errors, account isolation, concurrent sync, another bill queued during sync, and storage-write failure.
 - Browser QA in the isolated UI review · Demo group: disabled its network, saved a ₹450 Food & drinks bill, edited the queued amount to ₹480, then reopened with the API blocked. The cached group and ₹480 draft survived. Unblocking the API automatically produced exactly one confirmed ₹480 bill, ₹1,680 group expenses, ₹560 personal share, and ₹1,220 balance. The main demo ledger was not changed.
 - Authenticated PDF/XLSX endpoint tests confirm membership checks, numeric amounts, separate expense/transfer totals, all seven workbook sheets, share reconciliation and available audit history.
 - Typecheck, lint, Expo Doctor (20/20), Android/Hermes and web asset exports pass for the feature implementation. Native APK build and further visual/export checks are recorded below when completed.
 - Activity notifications refresh in-app while connected; background push and closed-app sync are not implemented. Previously discarded history cannot be restored. Offline creation requires a previously cached identity/group. Browser development assets are not an offline PWA.
+
+- Final report QA: generated and rendered a three-page PDF and inspected every page. Corrected footer pagination and added a regression test preventing blank trailing pages. App export buttons returned authenticated HTTP 200 responses; the captured XLSX response contained all seven sheets, ₹1,710 expenses, separate ₹100 transfer, and 20 history rows in the isolated demo. The PDF response contained the same total and the ₹480 → ₹510 edit. Browser save-dialog capture and physical Android share-sheet behavior remain unverified. Native file writes are awaited before opening the share sheet.
