@@ -2,6 +2,8 @@
 
 A small Android app for shared trip expenses. Create a group, add bills, record transfers, and see who owes whom. Built with Expo / React Native and a Node.js + SQLite API.
 
+<img src="docs/activity-preview.jpg" alt="Splitly activity history showing an expense change" width="320">
+
 ## Get the Android app
 
 Download **Splitly-1.1.0.apk** from [Releases](https://github.com/DIVYANSH-675/splitly/releases). This is a standalone preview APK; it does not need Expo Go. A physical-device acceptance test and Play Store release have not been completed.
