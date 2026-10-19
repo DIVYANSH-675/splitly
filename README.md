@@ -8,6 +8,8 @@ Get the standalone APK from [Releases](https://github.com/DIVYANSH-675/splitly/r
 
 The app uses the dedicated **SplitBill Supabase project** by default. It works without a local computer. First-time username registration, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
 
+<img src="docs/settings-preview.png" width="260" alt="SplitBill Settings with optional backup email"> <img src="docs/notifications-preview.png" width="260" alt="Full-page group history">
+
 ## Features
 
 - Start with a name and unique username. No email, password or Google account is required to start. An optional verified backup email supports passwordless recovery. The device securely retains an access token; knowing a username alone does not grant access.
@@ -71,7 +73,7 @@ supabase functions deploy splitbill-api --project-ref gomowueeizpwzzbqugod
 
 The function uses custom device-session authentication (`verify_jwt = false` for the legacy Supabase gateway check). Membership and author/admin validation happen inside the API. Deploy the migration before the function when provisioning another project. The current project’s schema was applied through its dashboard and verified there.
 
-Local SQLite defaults to `data/memogo.sqlite` for compatibility. Override with `SPLITLY_DB` or change `PORT`. Existing local data is preserved; it is **not automatically copied to the separate cloud project**.
+Local SQLite defaults to `data/memogo.sqlite` for compatibility. Override with `SPLITLY_DB` or change `PORT`. Existing local data is preserved. The five existing groups and their device identities were also migrated into the private cloud project; local SQLite remains a separate development snapshot.
 
 ## Backup email delivery setup
 

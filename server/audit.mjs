@@ -8,6 +8,7 @@ export function auditSnapshot(trip) {
   const name = (id) => trip.members.find((m) => m.id === id)?.name || 'Former member';
   put('name', 'Group name', trip.name);
   put('currency', 'Currency', trip.currency);
+  put('categories', 'Group categories', (trip.categories || []).join(', '));
   for (const m of trip.members)
     put(`member:${m.id}`, 'Member', `${m.name}${m.userId ? ' (joined)' : ' (guest)'}`);
   for (const e of trip.expenses) {
@@ -20,6 +21,7 @@ export function auditSnapshot(trip) {
       'Exchange rate': e.rate,
       'Split method': e.mode,
       Note: e.note,
+      Attachments: (e.attachments || []).map(file => file.name).join(', '),
       'Paid by': e.payers
         .map((p) => `${name(p.memberId)}: ${amount(p.amount, trip.currency)}`)
         .join(', '),

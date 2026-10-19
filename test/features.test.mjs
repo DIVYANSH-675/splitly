@@ -212,6 +212,7 @@ test('custom categories, private attachments and usernames persist across member
   await request(`${path}/attachments`,'POST',{id:'file_invalid_1234567890',name:'bad.pdf',mime:'application/pdf',data:Buffer.from('not a PDF').toString('base64')},author.token,400);
   group=await request(`${path}/expenses/${group.expenses[0].id}`,'PATCH',{...body,attachments:[]},owner.token);
   a.equal(group.expenses[0].attachments.length,0);
+  a.ok(group.activity[0].changes.some(change => change.field.endsWith('Attachments') && change.before === 'receipt.pdf' && change.after === ''));
   a.ok(JSON.parse(db.prepare('SELECT data FROM trips WHERE id=?').get(group.id).data).categories.includes('Camping'));
   const profile=await request('/me','PATCH',{name:'Admin',username:'unique_admin'},owner.token);
   a.equal(profile.username,'unique_admin');
