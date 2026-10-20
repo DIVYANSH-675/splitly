@@ -1,4 +1,19 @@
-# Validation — SplitBill 1.2.0
+# Validation — SplitBill 1.2.1
+
+- Source build: `71c450187d8e88dc47dbd5af3eb0d27b599cfe39`; [Android workflow 39383552995](https://github.com/DIVYANSH-675/splitly/actions/runs/39383552995).
+- Transactions use one date section per recorded calendar day; bills and transfers for that day are shown together. Grouping tests cover mixed types, day ordering, stable legacy ordering, invalid/missing dates, and no mutation of ledger data. Browser checks confirm one 24 Oct 2026 heading above all four demo bills and a separate 20 Oct section for the transfer, with no repeated dates on cards.
+- Updated bill and transfer forms have side-by-side From/To cards. Member selection uses a dedicated picker; bill splits support equal, exact amounts, shares and percentages. Done stays visible while the list scrolls.
+- Browser checks at 320- and 390-pixel widths: cards fit side by side; selections and form values persist after Done; exact amounts/percentages validate; multiple payer amounts and rounding are preserved; transfer participants can be changed. No demo ledger entries were saved during these checks.
+- Committed source passed 33 API/finance/offline tests, TypeScript and ESLint. Both Android CI jobs passed their source checks and native builds.
+- Both standalone APKs passed ZIP integrity, Android v2 signature verification, package/version checks (`com.divyansh.splitly`, version 1.2.1, Android code 4), expected single ABI, hosted API and updated picker bundle-string checks. Signing certificate matches 1.2.0 for compatible in-place preview upgrades.
+- ARM64: 36,843,242 bytes; SHA-256 `a60e5c2f6de0529ab849db181242c746cd24cbab9236fb7dd029bd053526e2da`.
+- ARMv7: 27,863,830 bytes; SHA-256 `eb5a8fc43c3ca46ac8314e8b76398fb5014eb6ed9cd76c4d170c600ed2c018da`.
+- Browser membership checks also passed: a synthetic Jigyasu Patel account claimed Jigyasu and kept the INR 600 balance; the member list showed the profile name and username; a group created through the comma-separated input became visible in the @username-invited account.
+- Membership integration and live-cloud checks passed: @username users see groups without a manual join; unknown/duplicate usernames are rejected; claims rename the same member while preserving bills, transfers and balances; an existing linked account cannot be claimed; new joins start with a separate balance; author/admin edit restrictions are retained. Connected names follow profile updates. No database schema changes were required.
+- The APKs contain the client at the build commit; subsequent release-documentation edits do not change the client.
+- Physical-device installation and native camera/picker/share behavior remain unverified. Backup-email delivery still requires the SMTP setup documented in the README. Cloud schema was unchanged. The matching server update was deployed; only synthetic QA groups were created or changed during verification.
+
+# Previous release — SplitBill 1.2.0
 
 ## Completed
 

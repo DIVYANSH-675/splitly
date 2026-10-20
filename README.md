@@ -4,19 +4,25 @@ A simple Android app for shared bills. Add a bill or transfer, see everyone’s 
 
 ## Android app
 
-Get the standalone APK from [Releases](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.2.0): [ARM64 APK (36.8 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.0/SplitBill-1.2.0-arm64-v8a.apk) or [older 32-bit APK (27.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.0/SplitBill-1.2.0-armeabi-v7a.apk). Choose **arm64-v8a** for most current Android phones; **armeabi-v7a** is for older 32-bit phones. Expo Go is not required. These are preview builds, not Play Store releases.
+Get the standalone APK from [Releases](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.2.1): [ARM64 APK (36.8 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.1/SplitBill-1.2.1-arm64-v8a.apk) or [older 32-bit APK (27.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.1/SplitBill-1.2.1-armeabi-v7a.apk). Choose **arm64-v8a** for most current Android phones; **armeabi-v7a** is for older 32-bit phones. Expo Go is not required. These are preview builds, not Play Store releases.
 
 The app uses the dedicated **SplitBill Supabase project** by default. It works without a local computer. First-time username registration, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
 
 <img src="docs/settings-preview.png" width="260" alt="SplitBill Settings with optional backup email"> <img src="docs/notifications-preview.png" width="260" alt="Full-page group history">
 
+<img src="docs/from-to-preview.png" width="260" alt="Side-by-side From and To bill selectors"> <img src="docs/share-picker-preview.png" width="260" alt="Member selection with equal, amount, share and percentage splits">
+
+<img src="docs/claim-member-preview.png" width="260" alt="Claim an existing group member or join as a new member"> <img src="docs/date-groups-preview.png" width="260" alt="Transactions grouped under one date heading per day">
+
 ## Features
 
 - Start with a name and unique username. No email, password or Google account is required to start. An optional verified backup email supports passwordless recovery. The device securely retains an access token; knowing a username alone does not grant access.
-- Create a group with friends’ names. Join using an invite code or scan its QR code. An offline-created group receives its real invite code after syncing.
+- Create a group with comma-separated names and @usernames, for example `Jigyasu, @priya_27`. Names create unclaimed guests. Valid @usernames link existing accounts after sync, so the group automatically appears for them. Unknown usernames produce a clear sync error.
+- Join with an invite code or QR scan, then choose an unclaimed guest name or join as a new member. Claiming keeps the same member ID, previous bills/transfers and balance, and shows your profile name. Connected accounts cannot be claimed; existing bills keep their original authors and permissions. An offline-created group receives its real invite code after syncing.
 - Add bills with equal, exact, percentage or weighted shares; multiple payers are supported. Tap the side-by-side **From · Paid by** and **To · Paid for** cards to select people and adjust their amounts. The share picker keeps **Done** visible while you scroll.
 - Choose a trip category or add a permanent category shared with the group.
 - Optionally attach up to three JPG, PNG, WebP or PDF files per bill, each up to 2 MB. Files are saved on the device before upload and require group membership to download.
+- Transactions share one date heading per day, newest dates first. Bill and transfer cards do not repeat the date. Full transaction dates remain available in bill details and exported reports.
 - Record transfers separately: balances change, expense totals do not. Side-by-side **From** and **To** cards open single-person selectors.
 - Green **+** means money to receive; red **−** means money owed; zero is neutral.
 - Open the notification bell for a full page showing who changed what, with timestamps and before/after details. This is an in-app history page; background push is not configured.
