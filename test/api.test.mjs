@@ -8,7 +8,7 @@ import { createApp } from '../server/index.mjs';
 test('shared group lifecycle: access, bills, settlements, removed features, legacy persistence', async (t) => {
   const folder = mkdtempSync(join(tmpdir(), 'splitly-test-'));
   const database = join(folder, 'test.sqlite');
-  let app = createApp({ database });
+  let app = createApp({allowLegacyAuth:true, database });
   const start = async () => {
     await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
     return `http://127.0.0.1:${app.server.address().port}/api`;
@@ -172,7 +172,7 @@ test('shared group lifecycle: access, bills, settlements, removed features, lega
   // Restart the actual SQLite-backed server. Financial records and sessions must survive.
   await new Promise((r) => app.server.close(r));
   app.db.close();
-  app = createApp({ database });
+  app = createApp({allowLegacyAuth:true, database });
   base = await start();
   trip = await request(path, 'GET', undefined, alice.token);
   a.equal(trip.total, 120000);
@@ -207,7 +207,7 @@ test('shared group lifecycle: access, bills, settlements, removed features, lega
 });
 
 test('name-only start creates a persistent identity and a group without travel fields', async (t) => {
-  const { server, db } = createApp({ database: ':memory:' });
+  const { server, db } = createApp({allowLegacyAuth:true, database: ':memory:' });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   t.after(async () => {
     await new Promise((r) => server.close(r));
@@ -245,7 +245,7 @@ test('name-only start creates a persistent identity and a group without travel f
 });
 
 test('direct transfers stay outside expenses and trip categories survive bill edits', async (t) => {
-  const { server, db } = createApp({ database: ':memory:' });
+  const { server, db } = createApp({allowLegacyAuth:true, database: ':memory:' });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   t.after(async () => {
     await new Promise((r) => server.close(r));

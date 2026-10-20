@@ -1,14 +1,14 @@
 # SplitBill
 
-A simple Android app for shared bills. Add a bill or transfer, see everyone’s signed balance, and settle up. No itinerary, subscription or Google sign-in.
+A simple Android app for shared bills. Add a bill or transfer, see everyone’s signed balance, and settle up. Sign in with Google, split bills, and keep the trip simple. No itinerary or subscription.
 
 ## Android app
 
-Get the standalone APK from [Releases](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.2.1): [ARM64 APK (36.8 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.1/SplitBill-1.2.1-arm64-v8a.apk) or [older 32-bit APK (27.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.1/SplitBill-1.2.1-armeabi-v7a.apk). Choose **arm64-v8a** for most current Android phones; **armeabi-v7a** is for older 32-bit phones. Expo Go is not required. These are preview builds, not Play Store releases.
+**Version 1.3.0 source is being prepared for Google-only sign-in; live OAuth setup and a new APK are pending.** The previous 1.2.1 APK does not include Google sign-in. Get that previous standalone APK from [Releases](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.2.1): [ARM64 APK (36.8 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.1/SplitBill-1.2.1-arm64-v8a.apk) or [older 32-bit APK (27.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.1/SplitBill-1.2.1-armeabi-v7a.apk). Choose **arm64-v8a** for most current Android phones; **armeabi-v7a** is for older 32-bit phones. Expo Go is not required. These are preview builds, not Play Store releases.
 
-The app uses the dedicated **SplitBill Supabase project** by default. It works without a local computer. First-time username registration, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
+The app uses the dedicated **SplitBill Supabase project** by default. It works without a local computer. First-time Google sign-in, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
 
-<img src="docs/settings-preview.png" width="260" alt="SplitBill Settings with optional backup email"> <img src="docs/notifications-preview.png" width="260" alt="Full-page group history">
+<img src="docs/notifications-preview.png" width="260" alt="Full-page group history">
 
 <img src="docs/from-to-preview.png" width="260" alt="Side-by-side From and To bill selectors"> <img src="docs/share-picker-preview.png" width="260" alt="Member selection with equal, amount, share and percentage splits">
 
@@ -16,7 +16,7 @@ The app uses the dedicated **SplitBill Supabase project** by default. It works w
 
 ## Features
 
-- Start with a name and unique username. No email, password or Google account is required to start. An optional verified backup email supports passwordless recovery. The device securely retains an access token; knowing a username alone does not grant access.
+- Continue with Google. New accounts use the verified Google name and photo, plus a unique default username of at most eight characters (for example `jigy4821`). Profile lets you edit your name, photo and username. Reinstalling and signing in with the same Google account restores the same cloud identity and synced groups. User edits survive subsequent Google sign-ins. Existing signed-in users can connect Google in Profile to preserve their old account.
 - Create a group with comma-separated names and @usernames, for example `Jigyasu, @priya_27`. Names create unclaimed guests. Valid @usernames link existing accounts after sync, so the group automatically appears for them. Unknown usernames produce a clear sync error.
 - Join with an invite code or QR scan, then choose an unclaimed guest name or join as a new member. Claiming keeps the same member ID, previous bills/transfers and balance, and shows your profile name. Connected accounts cannot be claimed; existing bills keep their original authors and permissions. An offline-created group receives its real invite code after syncing.
 - Add bills with equal, exact, percentage or weighted shares; multiple payers are supported. Tap the side-by-side **From · Paid by** and **To · Paid for** cards to select people and adjust their amounts. The share picker keeps **Done** visible while you scroll.
@@ -35,13 +35,13 @@ Built-in categories: Food & drinks, Travel, Stay, Activities, Groceries, Fuel, S
 
 ## Offline behavior
 
-The installed Android bundle starts without the development server. After the initial online registration, cached groups open offline. Bills, attachments, transfers, custom categories, group creation/renaming, guest member edits, profile changes and confirmed bill/transfer edits/deletions are durably queued before the app acknowledges saving them.
+The installed Android bundle starts without the development server. After the initial online Google sign-in, cached groups open offline. Bills, attachments, transfers, custom categories, group creation/renaming, guest member edits, profile changes and confirmed bill/transfer edits/deletions are durably queued before the app acknowledges saving them.
 
 New offline bills appear separately and are excluded from confirmed totals until accepted. Other pending group changes are previewed with a waiting-to-sync label. Refreshing the server cache does not discard the mutation queue. Reconnection, foregrounding and periodic retries sync while the app is open. Request IDs prevent a lost response from duplicating a bill, transfer or group.
 
 Validation or permission failures stay visible for retry or discard. A username chosen during a profile edit may be rejected if another person has taken it. Joining an uncached group and exporting server-confirmed reports require the network; the app cannot retrieve unknown group data offline. Sync does not run after the app is closed. The localhost browser preview is not an offline PWA.
 
-Keep app data until queued changes sync. Clearing data loses drafts and device-only account access. Usernames are identifiers, not recovery credentials. Email recovery requires a previously verified backup address and an Internet connection. Delivery must be configured as described below; a username alone cannot restore access. Signing out is blocked while changes remain queued.
+Keep app data until queued changes sync. Clearing data loses unsynced drafts. Sign-in requires an Internet connection; after signing in, cached groups and the offline queue continue to work without it. Choose the same Google account after reinstalling. Existing device-only users must connect Google while still signed in; knowing their old username alone cannot recover that identity. Signing out is blocked while changes remain queued. Backup email and name-only registration are no longer available.
 
 ## Run locally
 
@@ -58,13 +58,13 @@ npm run dev
 - `npm run dev:mobile` starts the mobile development server without opening a browser.
 - Ctrl+C stops both launcher processes.
 
-Web development defaults to the local SQLite API to preserve existing demo data. Android defaults to the hosted Supabase Edge API. Set `EXPO_PUBLIC_API_URL` in `mobile/.env` to override it. Connection settings on the welcome page can select another API; a saved address takes precedence. Existing Android package and device storage keys are preserved across the rename.
+Web development defaults to the local SQLite API to preserve existing demo data. Android defaults to the hosted Supabase Edge API. Set `EXPO_PUBLIC_API_URL` in `mobile/.env` to override it. A previously saved development API address takes precedence; the public welcome screen has no server configuration form. Existing Android package and device storage keys are preserved across the rename.
 
 ## Cloud architecture
 
 Project: `gomowueeizpwzzbqugod` in the dedicated **SplitBill** organization, Singapore region.
 
-- `supabase/migrations/20261019204540_splitbill_core.sql`: private `splitbill` schema for users, profiles, hashed sessions, groups, idempotency records and attachments. RLS is enabled on all app tables. Runtime queries assume a non-login role restricted to this private schema. A second migration adds private backup-email and verification-challenge tables. Anonymous/authenticated Data API roles have no direct access.
+- `supabase/migrations/20261019204540_splitbill_core.sql`: private `splitbill` schema for users, profiles, hashed sessions, groups, idempotency records and attachments. RLS is enabled on all app tables. Runtime queries assume a non-login role restricted to this private schema. The OAuth identity migration stores the stable Google subject and app user mapping in a private table. Historical backup-email tables are retained for data preservation but no longer used for sign-in. Anonymous/authenticated Data API roles have no direct access.
 - `server/core.mjs`: shared API authorization and validation. Every protected request validates its opaque session, then group membership. Creator/admin checks apply to writes.
 - `supabase/functions/splitbill-api/index.ts`: generated Edge deployment using the same finance, audit and report code as the local API. Database credentials are available only on the server; app queries run as `splitbill_api`, with bounded statement/lock timeouts. The mobile bundle has no service-role key or database password.
 - Edge transactions serialize ledger changes with a database advisory lock so concurrent requests cannot overwrite each other’s balances/history. This deliberately simple deployment targets small groups; higher request volumes should partition locking and group storage.
@@ -77,24 +77,25 @@ node scripts/build-edge.mjs
 supabase functions deploy splitbill-api --project-ref gomowueeizpwzzbqugod
 ```
 
-Apply all three migration files when provisioning a fresh project. The final migration restricts runtime database privileges and adds the attachment-user foreign-key index.
+Apply all migration files in timestamp order when provisioning a fresh project. Runtime-role hardening restricts database privileges; the Google migration adds the private OAuth identity mapping.
 
 The function uses custom device-session authentication (`verify_jwt = false` for the legacy Supabase gateway check). Membership and author/admin validation happen inside the API. Deploy the migration before the function when provisioning another project. The current project’s schema was applied through its dashboard and verified there.
 
 Local SQLite defaults to `data/memogo.sqlite` for compatibility. Override with `SPLITLY_DB` or change `PORT`. Existing local data is preserved. The five existing groups and their device identities were also migrated into the private cloud project; local SQLite remains a separate development snapshot.
 
-## Backup email delivery setup
+## Google sign-in setup
 
-Settings → Backup email verifies an address before it can recover an account. The welcome screen’s **Sign in with backup email** requests a code, then restores the same user ID, username, groups and admin rights after verification. Codes are single-use; an email address alone never grants access. Verification requires the network and is not queued offline.
+Version 1.3.0 uses Google as its only sign-in method. Google OAuth setup and a real browser/device sign-in must be completed before publishing the APK as ready for use.
 
-The recovery routes and UI are implemented and covered by tests with an injected OTP provider. **Public email delivery is not configured on this preview project.** Supabase’s free default email service is restricted to team addresses, uses default sign-in links, and does not permit editing those templates. Do not mark delivery ready until the following setup is complete:
+1. In a dedicated Google Cloud project, configure the Google Auth Platform consent screen for SplitBill. Request only `openid`, email and profile scopes. Set the audience appropriately for intended users.
+2. Create a **Web application** OAuth client with authorized redirect URI `https://gomowueeizpwzzbqugod.supabase.co/auth/v1/callback`.
+3. Enable the Google provider in the matching Supabase project and save the client ID and secret there. Never put the secret in this repository or the mobile app.
+4. Add these Supabase redirect allow-list entries: `splitly://auth/google**` for the Android app and `http://localhost:8081/auth/google**` for the local web preview. The trailing wildcard permits the random callback state. Add only explicitly used development origins; remove unused development entries before a public production deployment.
+5. Apply `supabase/migrations/20261019214431_google_signin.sql`, then generate the tested Edge Function with `node scripts/build-edge.mjs` and deploy it. Keep legacy gateway JWT verification disabled: app sessions are verified inside the API. The OAuth mapping remains private with RLS and the existing restricted runtime role.
+6. Test first sign-in (Google name/photo and short username), editing Profile, sign-out/sign-in, and the Android browser return link. Verify a linked legacy account retains its groups and balances.
 
-1. In Supabase Authentication → Emails → SMTP Settings, configure a transactional email provider and its verified sender.
-2. Set both **Confirm sign up** and **Magic link or OTP** templates to include `{{ .Token }}`. Ready-to-use subject/body examples are in `docs/email-templates/`.
-3. Set Edge secret `SPLITBILL_EMAIL_OTP_READY=true` only after testing delivery and code verification. The runtime already provides `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Local development requires these variables too.
-4. Test adding a backup email, signing out, and recovering the same account from another device. Check rate limits and spam delivery.
+The app uses a random PKCE verifier and state, a ten-minute pending-login expiry, and server-side code exchange. Only a verified Google identity supplies the account key. Existing user sessions remain valid during migration. Legacy auth endpoints return a clear update message in production; `allowLegacyAuth` exists only for explicit legacy-fixture tests and is not enabled by the server entry point or Edge Function.
 
-Until configured, adding a backup email returns a clear setup message and does not send a link that the code-entry screen cannot use. No SMTP password, service role key, real email code or recovery token belongs in this repository.
 
 ## Android builds
 

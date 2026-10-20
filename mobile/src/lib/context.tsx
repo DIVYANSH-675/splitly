@@ -32,9 +32,7 @@ type Context = {
     body?: Record<string, unknown>,
   ) => Promise<Trip | User | undefined>;
   setError: (s: string) => void;
-  signIn: (values: Record<string, string>, register: boolean) => Promise<void>;
-  startGuest: (name: string, username: string) => Promise<void>;
-  recoverEmail: (email: string, code: string) => Promise<void>;
+  completeGoogle: (values:{code:string;verifier:string;link:boolean}) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
   updateTrip: (trip: Trip) => void;
@@ -267,26 +265,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPending([...(await box.load())]);
     await sync();
   };
-  const signIn = async (values: Record<string, string>, register: boolean) => {
-    const result = await api<{ token: string; user: User }>(
-      register ? '/register' : '/login',
-      'POST',
-      values,
-    );
-    await setToken(result.token);
-    setSeen({});
-    setPending([]);
-    setUser(result.user);
-    await refresh();
-  };
-  const startGuest = async (name: string, username: string) => {
-    const result = await api<{ token: string; user: User }>('/guest', 'POST', { name, username });
-    await setToken(result.token);
-    setSeen({});
-    setPending([]);
-    setUser(result.user);
-    await refresh();
-  };
   const signOut = async () => {
     if (
       (actionBox.current && (await actionBox.current.load()).length) ||
@@ -378,18 +356,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         syncing,
         seen,
         setError,
-        signIn,
-        startGuest,
-        recoverEmail: async (email, code) => {
-          const result = await api<{ token: string; user: User }>('/email-login/verify', 'POST', {
-            email,
-            code,
-          });
+        completeGoogle: async ({code,verifier,link}) => {
+          if (link) {setUser(await api<User>('/google/link','POST',{code,verifier}));return;}
+          const result = await api<{token:string;user:User}>('/google/login','POST',{code,verifier});
           await setToken(result.token);
-          setSeen({});
-          setPending([]);
-          setActions([]);
-          setUser(result.user);
+          setSeen({});setPending([]);setActions([]);setUser(result.user);
           await refresh();
         },
         signOut,

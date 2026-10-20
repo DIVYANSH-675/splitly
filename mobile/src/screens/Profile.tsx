@@ -9,7 +9,8 @@ import type { User } from '../lib/types';
 import { Avatar, BottomNav, Btn, C, ErrorBox, Field, Icon, Logo, Page, s } from '../components/ui';
 import { PaperArt } from '../components/FinanceCards';
 import Auth from './Auth';
-import { BackupEmail } from '../components/BackupEmail';
+import { version } from '../../package.json';
+import { GoogleSignIn } from '../components/GoogleSignIn';
 export default function Profile() {
   const { user, setUser, signOut, mutate } = useApp();
   const [name, setName] = useState<string | null>(null),
@@ -61,7 +62,7 @@ export default function Profile() {
             <Btn title="Remove photo" secondary onPress={() => setPhoto('')} />
           )}
           <Text style={s.h2}>{user.name}</Text>
-          <Text style={s.muted}>{user.email || 'Good company starts with you.'}</Text>
+          <Text style={s.muted}>{user.googleEmail || user.email || 'Good company starts with you.'}</Text>
         </View>
         <View style={[s.card, { padding: 22, gap: 23 }]}>
           <Field
@@ -77,7 +78,7 @@ export default function Profile() {
           <Field
             label="Unique username"
             value={username ?? user.username ?? ''}
-            onChangeText={setUsername}
+            onChangeText={(value) => { setUsername(value); setSaved(false); }}
             autoCapitalize="none"
             autoCorrect={false}
             maxLength={24}
@@ -108,8 +109,8 @@ export default function Profile() {
           />
         </View>
         <Text style={s.eyebrow}>SETTINGS</Text>
-        <BackupEmail />
-        {user.guest && (
+        <GoogleSignIn link disabled={busy}/>
+        {user.guest && !user.googleEmail && (
           <View style={[s.row, { alignItems: 'flex-start', gap: 13, paddingHorizontal: 4 }]}>
             <Icon name="phone-portrait-outline" size={20} color={C.muted} />
             <View style={{ flex: 1, gap: 5 }}>
@@ -117,12 +118,12 @@ export default function Profile() {
                 A familiar face, on this device.
               </Text>
               <Text style={s.muted}>
-                Add a verified backup email to restore this account on another device.
+                Connect Google above before changing phones or reinstalling. Your existing groups and balances will stay with this account.
               </Text>
             </View>
           </View>
         )}
-        {(!user.guest || Boolean(user.backupEmail)) && (
+        {Boolean(user.googleEmail) && (
           <Btn
             title="Sign out"
             secondary
@@ -146,7 +147,7 @@ export default function Profile() {
           <PaperArt />
         </View>
         <Text style={{ fontSize: 10, textAlign: 'center', color: '#94A085' }}>
-          Less money talk. More of the good stuff.
+          SplitBill {version} · Less money talk. More of the good stuff.
         </Text>
       </ScrollView>
       <BottomNav active="Profile" />

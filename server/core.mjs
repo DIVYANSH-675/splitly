@@ -1,4 +1,4 @@
-import { createEmailAuth } from './email.mjs';
+import { createGoogleAuth } from './google.mjs';
 import { auditSnapshot, auditChanges } from './audit.mjs';
 import { exportTrip } from './export.mjs';
 import { randomBytes, randomUUID, scrypt, createHash, timingSafeEqual } from 'node:crypto';
@@ -56,15 +56,7 @@ const categories = [
   'Other',
 ];
 
-export function createHandler(db, attempts = new Map(), emailAuth = createEmailAuth()) {
-  const emailAddress = (value) => {
-    const email = inputEmail(value);
-    assert(
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254,
-      'Enter a valid email address',
-    );
-    return email;
-  };
+export function createHandler(db, attempts = new Map(), googleAuth = createGoogleAuth(), { allowLegacyAuth = false } = {}) {
   const throttle = (key, limit = 20) => {
     const now = Date.now();
     let a = attempts.get(key);
@@ -82,21 +74,49 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
       .prepare('INSERT INTO trips VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data')
       .run(trip.id, trip.code, JSON.stringify(trip));
   };
+  const newUsername = async (name) => {
+    const base = String(name || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 4) || 'user';
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const username = attempt < 20
+        ? `${base}${String(randomBytes(4).readUInt32BE() % 10000).padStart(4, '0')}`
+        : randomBytes(4).toString('hex');
+      if (!(await db.prepare('SELECT user_id FROM profiles WHERE username=?').get(username))) return username;
+    }
+    throw Object.assign(new Error('Could not assign a username. Please try again.'), {status:503});
+  };
   const publicUser = async (user) => {
     let profile=await db.prepare('SELECT username,photo FROM profiles WHERE user_id=?').get(user.id);
     if (!profile) {
       // Older device identities predate usernames; preserve their ID and group access.
-      let username;
-      do {username=`user_${randomBytes(9).toString('hex')}`;} while (await db.prepare('SELECT user_id FROM profiles WHERE username=?').get(username));
+      const username = await newUsername(user.name);
       await db.prepare('INSERT INTO profiles(user_id,username,photo) VALUES(?,?,?)').run(user.id,username,'');
       profile={username,photo:''};
     }
     return {
-      backupEmail:(await db.prepare('SELECT email FROM backup_emails WHERE user_id=?').get(user.id))?.email || '',
+      googleEmail:(await db.prepare("SELECT email FROM oauth_identities WHERE user_id=? AND provider='google'").get(user.id))?.email || '',
       ...profile,id:user.id,name:user.name,
       email:user.email.endsWith('@guest.splitly.local') ? '' : user.email,
       guest:user.email.endsWith('@guest.splitly.local'),
     };
+  };
+  const googleAccount = async (identity, currentUser) => {
+    const linked = await db.prepare("SELECT user_id FROM oauth_identities WHERE provider='google' AND subject=?").get(identity.subject);
+    if (currentUser) {
+      assert(!linked || linked.user_id === currentUser.id, 'This Google account is already connected to another SplitBill account.', 409);
+      const own = await db.prepare("SELECT subject FROM oauth_identities WHERE user_id=? AND provider='google'").get(currentUser.id);
+      assert(!own || own.subject === identity.subject, 'This SplitBill account already has a different Google account connected.', 409);
+    }
+    let user = currentUser || (linked && await db.prepare('SELECT * FROM users WHERE id=?').get(linked.user_id));
+    if (!user) {
+      const userId = id();
+      user = { id: userId, email: `guest-${userId}@guest.splitly.local`, name: identity.name, salt: randomBytes(16).toString('hex'), password: randomBytes(64).toString('hex') };
+      await db.prepare('INSERT INTO users VALUES(?,?,?,?,?)').run(user.id,user.email,user.name,user.salt,user.password);
+      const username = await newUsername(identity.name);
+      await db.prepare('INSERT INTO profiles(user_id,username,photo) VALUES(?,?,?)').run(user.id,username,identity.photo || '');
+    }
+    if (!linked) await db.prepare('INSERT INTO oauth_identities(provider,subject,user_id,email) VALUES(?,?,?,?)').run('google',identity.subject,user.id,identity.email);
+    else await db.prepare("UPDATE oauth_identities SET email=? WHERE provider='google' AND subject=?").run(identity.email,identity.subject);
+    return user;
   };
   const decorate = async (trip, user) => {
     const decoratedMembers = await Promise.all(
@@ -211,6 +231,8 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
       assert(segments[0] === 'api', 'Not found', 404);
       if (url.pathname === '/api/health')
         return await send(200, { ok: true, service: 'SplitBill API' });
+      if (url.pathname === '/api/google/config' && req.method === 'GET')
+        return await send(200, await googleAuth.config());
       let body = {};
       if (['POST', 'PATCH', 'DELETE'].includes(req.method)) {
         assert(
@@ -232,30 +254,17 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
         }
         assert(body && typeof body === 'object' && !Array.isArray(body), 'Invalid request body');
       }
-      if (segments[1] === 'email-login' && req.method === 'POST') {
-        const email = emailAddress(body.email);
-        throttle(`email-login:${req.socket.remoteAddress}:${hash(email)}`, 8);
-        if (segments[2] === 'start') {
-          const saved = await db
-            .prepare('SELECT user_id FROM backup_emails WHERE email=?')
-            .get(email);
-          if (saved) await emailAuth.send(email, false);
-          return await send(200, { ok: true });
-        }
-        assert(segments[2] === 'verify', 'Not found', 404);
-        assert(/^\d{6,8}$/.test(String(body.code || '')), 'Enter the code from your email');
-        await emailAuth.verify(email, String(body.code));
-        const saved = await db
-          .prepare('SELECT user_id FROM backup_emails WHERE email=?')
-          .get(email);
-        assert(saved, 'This email has not been verified as a backup for an account', 401);
-        const recovered = await db.prepare('SELECT * FROM users WHERE id=?').get(saved.user_id);
+      if (url.pathname === '/api/google/login' && req.method === 'POST') {
+        throttle(`google:${req.socket.remoteAddress}`, 15);
+        const recovered = await googleAccount(await googleAuth.exchange(body.code, body.verifier));
         const session = randomBytes(32).toString('hex');
-        await db
-          .prepare('INSERT INTO sessions VALUES(?,?,?)')
-          .run(hash(session), recovered.id, Date.now() + 3650 * 86400_000);
-        return await send(200, { token: session, user: await publicUser(recovered) });
+        await db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(hash(session), recovered.id, Date.now()+3650*86400_000);
+        return await send(200, {token:session,user:await publicUser(recovered)});
       }
+      if (['email-login', 'backup-email'].includes(segments[1]))
+        return await send(410, { error: 'Email sign-in has been replaced by Google. Update SplitBill and continue with Google.' });
+      if (['guest', 'register', 'login'].includes(segments[1]) && !allowLegacyAuth)
+        return await send(410, { error: 'Continue with Google to create or restore your SplitBill account.' });
       if (segments[1] === 'guest' && req.method === 'POST') {
         throttle(`auth:${req.socket.remoteAddress}`);
         const username = String(body.username || `user_${randomBytes(6).toString('hex')}`)
@@ -349,6 +358,11 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
         )
         .get(hash(token), Date.now());
       assert(user, 'Please sign in again', 401);
+      if (url.pathname === '/api/google/link' && req.method === 'POST') {
+        throttle(`google-link:${user.id}`, 10);
+        await googleAccount(await googleAuth.exchange(body.code,body.verifier),user);
+        return await send(200, await publicUser(user));
+      }
       if (
         body.clientRequestId &&
         !['logout'].includes(segments[1]) &&
@@ -382,43 +396,6 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
           signature: requestSignature(body),
         };
       }
-      if (segments[1] === 'backup-email' && req.method === 'POST') {
-        const email = emailAddress(body.email);
-        throttle(`backup-email:${user.id}`, 8);
-        const linked = await db
-          .prepare('SELECT user_id FROM backup_emails WHERE email=?')
-          .get(email);
-        assert(
-          !linked || linked.user_id === user.id,
-          'This email is already linked to another account',
-          409,
-        );
-        if (segments[2] === 'start') {
-          await emailAuth.send(email, true);
-          await db
-            .prepare(
-              'INSERT INTO email_challenges VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET email=excluded.email,created_at=excluded.created_at',
-            )
-            .run(user.id, email, Date.now());
-          return await send(200, { ok: true });
-        }
-        assert(segments[2] === 'verify', 'Not found', 404);
-        const challenge = await db
-          .prepare('SELECT * FROM email_challenges WHERE user_id=?')
-          .get(user.id);
-        assert(
-          challenge?.email === email && Date.now() - Number(challenge.created_at) < 600000,
-          'Request a new email code first',
-        );
-        assert(/^\d{6,8}$/.test(String(body.code || '')), 'Enter the code from your email');
-        await emailAuth.verify(email, String(body.code));
-        await db.prepare('DELETE FROM backup_emails WHERE user_id=?').run(user.id);
-        await db
-          .prepare('INSERT INTO backup_emails VALUES(?,?,?)')
-          .run(user.id, email, new Date().toISOString());
-        await db.prepare('DELETE FROM email_challenges WHERE user_id=?').run(user.id);
-        return await send(200, await publicUser(user));
-      }
       if (segments[1] === 'logout' && req.method === 'POST') {
         await db.prepare('DELETE FROM sessions WHERE token=?').run(hash(token));
         return await send(200, { ok: true });
@@ -441,7 +418,7 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
           assert(
             typeof photo === 'string' &&
               photo.length < 120000 &&
-              (!photo || /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(photo)),
+              (!photo || photo === current.photo || /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(photo)),
             'Choose a smaller profile photo',
           );
           if (username)

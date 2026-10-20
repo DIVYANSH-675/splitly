@@ -1,3 +1,12 @@
+# Validation — SplitBill 1.3.0 (in progress)
+
+- Google-only welcome screen; backup-email and manual name/username signup removed.
+- Verified Google profile initializes name/photo and a unique default handle up to eight characters. Users may edit these later; returning sign-in retains those edits.
+- PKCE/state/API/redirect/expiry validation and server-side verified-provider checks are covered by local tests. Linked legacy identities retain group ownership, and a Google identity cannot be connected to two app users.
+- Production registration/password/email routes are disabled. Historical database records are preserved.
+- Local checks: 36 tests passed, TypeScript passed and ESLint passed. Browser inspection confirms the Google-only welcome screen and editable Profile with no backup-email section.
+- Real Google OAuth provider configuration, browser sign-in, Android return flow and APK build are pending; no live Google sign-in success is claimed yet.
+
 # Validation — SplitBill 1.2.1
 
 - Source build: `71c450187d8e88dc47dbd5af3eb0d27b599cfe39`; [Android workflow 39383552995](https://github.com/DIVYANSH-675/splitly/actions/runs/39383552995).

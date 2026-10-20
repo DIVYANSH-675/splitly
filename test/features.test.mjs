@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import { strict as a } from 'node:assert';
 import ExcelJS from 'exceljs';
 import { createApp } from '../server/index.mjs';
-async function fixture(t, emailAuth) {
-  const app = createApp({ database: ':memory:', emailAuth });
+async function fixture(t) {
+  const app = createApp({allowLegacyAuth:true, database: ':memory:' });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   t.after(async () => {
     await new Promise((r) => app.server.close(r));
@@ -241,31 +241,6 @@ test('queued group/member IDs survive sync and all mutation retries are duplicat
 });
 
 
-test('backup email must be verified and restores the same identity without a username', async t => {
-  const codes=new Map();
-  const emailAuth={send:async email=>{codes.set(email,'123456');}, verify:async (email,code)=>{
-    if(codes.get(email)!==code) throw Object.assign(new Error('Incorrect or expired code'),{status:401});
-    codes.delete(email);return {email,email_confirmed_at:new Date().toISOString()};
-  }};
-  const {request,owner,peer,trip}=await fixture(t,emailAuth);
-  await request('/backup-email/start','POST',{email:'owner@example.test'},owner.token);
-  await request('/backup-email/verify','POST',{email:'other@example.test',code:'123456'},owner.token,400);
-  await request('/backup-email/verify','POST',{email:'owner@example.test',code:'999999'},owner.token,401);
-  const linked=await request('/backup-email/verify','POST',{email:'owner@example.test',code:'123456'},owner.token);
-  a.equal(linked.backupEmail,'owner@example.test');
-  await request('/backup-email/start','POST',{email:'owner@example.test'},peer.token,409);
-  await request('/email-login/start','POST',{email:'missing@example.test'});
-  a.equal(codes.has('missing@example.test'),false);
-  await request('/email-login/start','POST',{email:'owner@example.test'});
-  await request('/email-login/verify','POST',{email:'owner@example.test',code:'000000'},undefined,401);
-  const recovered=await request('/email-login/verify','POST',{email:'owner@example.test',code:'123456'});
-  a.equal(recovered.user.id,owner.user.id);
-  const group=await request(`/trips/${trip.id}`,'GET',undefined,recovered.token);
-  a.equal(group.isOwner,true);
-  await request('/email-login/verify','POST',{email:'owner@example.test',code:'123456'},undefined,401);
-});
-
-
 test('offline entity IDs cannot replace another group or collide with ledger entries', async t => {
  const {request,owner,author,trip,path,body}=await fixture(t);
  await request('/trips','POST',{id:trip.id,name:'Replacement attempt'},author.token,409);
@@ -293,7 +268,7 @@ test('legacy identities gain a username and can save a photo without losing grou
  const {request,owner,trip,db}=await fixture(t);
  db.prepare('DELETE FROM profiles WHERE user_id=?').run(owner.user.id);
  const restored=await request('/me','GET',undefined,owner.token);
- a.equal(restored.id,owner.user.id);a.match(restored.username,/^user_[a-f0-9]{18}$/);
+ a.equal(restored.id,owner.user.id);a.match(restored.username,/^admi[0-9]{4}$/);
  const photo='data:image/jpeg;base64,/9j/2Q==';
  const profile=await request('/me','PATCH',{name:'Admin',photo},owner.token);
  a.equal(profile.photo,photo);a.equal(profile.username,restored.username);

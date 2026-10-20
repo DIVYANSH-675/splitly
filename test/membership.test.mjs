@@ -4,7 +4,7 @@ import {createApp} from '../server/index.mjs';
 import {projectActions} from '../mobile/src/lib/offline-actions.mjs';
 
 test('username invites, guest claims and new joins preserve identities, ledger and author permissions',async(t)=>{
-  const app=createApp({database:':memory:'});
+  const app=createApp({allowLegacyAuth:true,database:':memory:'});
   await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
   t.after(async()=>{await new Promise(resolve=>app.server.close(resolve));app.db.close();});
   const call=async(path,method='GET',body,token,status=200)=>{
