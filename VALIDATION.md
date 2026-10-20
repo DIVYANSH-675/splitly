@@ -1,4 +1,4 @@
-# Validation — SplitBill 1.3.0 (in progress)
+# Validation — SplitBill 1.3.0 preview
 
 - Google-only welcome screen; backup-email and manual name/username signup removed.
 - Verified Google profile initializes name/photo and a unique default handle up to eight characters. Users may edit these later; returning sign-in retains those edits.
@@ -7,7 +7,10 @@
 - Local checks: 36 tests passed, TypeScript passed and ESLint passed. Browser inspection confirms the Google-only welcome screen and editable Profile with no backup-email section.
 - Live database: the Google identity migration was applied successfully; RLS is enabled, anonymous/authenticated table access is denied, and the app runtime role has its intended access. Supabase Advisor reports no security issues.
 - Google Cloud project `splitbill-512207` was created. Consent configuration is prepared and awaiting user approval of Google’s API Services User Data Policy. Provider activation and real browser/device login are pending.
-- Android workflow [39389907164](https://github.com/DIVYANSH-675/splitly/actions/runs/39389907164) builds source `f74694e`; completion and APK verification are pending. No live Google sign-in success is claimed yet.
+- Android workflow [39389907164](https://github.com/DIVYANSH-675/splitly/actions/runs/39389907164) builds source `f74694e`; both Android jobs completed successfully. Both APKs passed ZIP integrity, package/version (1.3.0, code 5), ABI, bundled Google UI and cloud URL checks, and Android v2 signature verification. The certificate matches 1.2.1 for in-place preview updates. No physical-device test or live Google sign-in success is claimed yet. The Google backend has not been deployed while provider activation is pending.
+
+- ARM64 APK: 36,870,789 bytes; SHA-256 `951db3f4a458ed5b82b5939db58a44bf91f8dba9fd7c9c6aa7b1e1fa0252df34`.
+- ARMv7 APK: 27,891,377 bytes; SHA-256 `32ba2e797d453d35ce2033112a006c56bd4ce6d07311bf740541a7d6e238297b`.
 
 # Validation — SplitBill 1.2.1
 

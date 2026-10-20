@@ -4,9 +4,9 @@ A simple Android app for shared bills. Add a bill or transfer, see everyone’s 
 
 ## Android app
 
-**Version 1.3.0 source is being prepared for Google-only sign-in; live OAuth setup and a new APK are pending.** The previous 1.2.1 APK does not include Google sign-in. Get that previous standalone APK from [Releases](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.2.1): [ARM64 APK (36.8 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.1/SplitBill-1.2.1-arm64-v8a.apk) or [older 32-bit APK (27.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.2.1/SplitBill-1.2.1-armeabi-v7a.apk). Choose **arm64-v8a** for most current Android phones; **armeabi-v7a** is for older 32-bit phones. Expo Go is not required. These are preview builds, not Play Store releases.
+**Version 1.3.0 APKs are built and verified, but Google sign-in activation is still pending. New users cannot sign in yet.** Download the [1.3.0 preview](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.3.0): [ARM64 APK (36.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.3.0/SplitBill-1.3.0-arm64-v8a.apk) or [older 32-bit APK (27.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.3.0/SplitBill-1.3.0-armeabi-v7a.apk). Choose **arm64-v8a** for most current Android phones. These are preview builds, not Play Store releases. The package and signing certificate match the previous release: install over it without uninstalling or clearing app data. Old release listings have been retired; source history is retained.
 
-The app uses the dedicated **SplitBill Supabase project** by default. It works without a local computer. First-time Google sign-in, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
+The app uses the dedicated **SplitBill Supabase project** by default. After Google provider activation and backend deployment, it works without a local computer. First-time Google sign-in, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
 
 <img src="docs/google-welcome-preview.png" width="260" alt="SplitBill Google-only sign-in screen"> <img src="docs/notifications-preview.png" width="260" alt="Full-page group history">
 
