@@ -81,7 +81,7 @@ Apply all migration files in timestamp order when provisioning a fresh project. 
 
 The function uses custom device-session authentication (`verify_jwt = false` for the legacy Supabase gateway check). Membership and author/admin validation happen inside the API. Deploy the migration before the function when provisioning another project. The current project’s schema was applied through its dashboard and verified there.
 
-Local SQLite defaults to `data/memogo.sqlite` for compatibility. Override with `SPLITLY_DB` or change `PORT`. Existing local data is preserved. The five existing groups and their device identities were also migrated into the private cloud project; local SQLite remains a separate development snapshot.
+Local SQLite keeps its existing database path for compatibility; see [server configuration](server/index.mjs). Override the path with `SPLITLY_DB` or change `PORT`. Existing local data is preserved. Local SQLite remains a separate development snapshot from the private cloud project.
 
 ## Google sign-in setup
 
