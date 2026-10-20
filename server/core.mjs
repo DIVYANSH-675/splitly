@@ -133,6 +133,22 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
     };
   };
   const snapshots = new WeakMap();
+  const resolvePerson = async (value, usernameValue, emailValue) => {
+    const raw = String(value || '').trim();
+    const username = String(usernameValue || (raw.startsWith('@') ? raw.slice(1) : '')).trim().toLowerCase();
+    if (username || raw.startsWith('@')) {
+      assert(/^[a-z0-9_]{3,24}$/.test(username), 'Use @ followed by a valid username');
+      const account = await db.prepare('SELECT users.id,users.name FROM profiles JOIN users ON users.id=profiles.user_id WHERE profiles.username=?').get(username);
+      assert(account, `No account found for @${username}. Check the username or add a guest by name.`);
+      return {name:account.name,userId:account.id};
+    }
+    if (emailValue) {
+      const account=await db.prepare('SELECT id,name FROM users WHERE email=?').get(String(emailValue).trim().toLowerCase());
+      assert(account,'No account with this email. Add a guest by name or share the invite code.');
+      return {name:account.name,userId:account.id};
+    }
+    return {name:text(raw,'Member name',60)};
+  };
   const event = (trip, user, message) => {
     const after = auditSnapshot(trip);
     const changes = auditChanges(snapshots.get(trip) || {}, after);
@@ -462,6 +478,7 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
         if (segments[2] === 'preview')
           return await send(200, {
             name: trip.name,
+            joined: trip.members.some(member=>member.userId===user.id),
             guests: trip.members.filter((m) => !m.userId).map((m) => ({ id: m.id, name: m.name })),
           });
         if (!trip.members.some((m) => m.userId === user.id)) {
@@ -473,6 +490,7 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
               409,
             );
             guest.userId = user.id;
+            guest.name = user.name;
           } else {
             assert(trip.members.length < 100, 'This group is full');
             trip.members.push({ id: id(), name: user.name, userId: user.id });
@@ -512,11 +530,14 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
             Array.isArray(body.guests) && body.guests.length <= 30,
             'Add up to 30 guests at creation',
           );
-          for (const [index, name] of body.guests.entries())
+          for (const [index, name] of body.guests.entries()) {
+            const person=await resolvePerson(name);
+            assert(!person.userId || !trip.members.some(member=>member.userId===person.userId),'This account is already included in the group',409);
             trip.members.push({
               id: clientId(body.memberIds?.[index]),
-              name: text(name, 'Guest name', 60),
+              ...person,
             });
+          }
         }
         assert(new Set(trip.members.map(member=>member.id)).size===trip.members.length,'Member IDs must be unique');
         event(trip, user, 'created the group');
@@ -645,25 +666,16 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
         owner();
         if (req.method === 'POST') {
           assert(trip.members.length < 100, 'Group member limit reached');
-          const email = String(body.email || '')
-            .trim()
-            .toLowerCase();
-          const linked = email
-            ? await db.prepare('SELECT id,name FROM users WHERE email=?').get(email)
-            : null;
+          const person=await resolvePerson(body.name,body.username,body.email);
           assert(
-            !email || linked,
-            'No account with this email. Add a guest by name or share the invite code.',
-          );
-          assert(
-            !linked || !trip.members.some((m) => m.userId === linked.id),
+            !person.userId || !trip.members.some((m) => m.userId === person.userId),
             'This user is already a member',
+            409,
           );
           assert(!trip.members.some(member=>member.id===body.id),'Member ID already exists',409);
           trip.members.push({
             id: clientId(body.id),
-            name: text(body.name || linked?.name, 'Member name', 60),
-            ...(linked ? { userId: linked.id } : {}),
+            ...person,
           });
           event(trip, user, 'added a member');
         } else {
@@ -680,6 +692,7 @@ export function createHandler(db, attempts = new Map(), emailAuth = createEmailA
             event(trip, user, 'removed a member');
           } else {
             assert(req.method === 'PATCH', 'Method not allowed', 405);
+            assert(!m.userId,'Connected members use their profile name. They can change it in Profile.',409);
             m.name = text(body.name, 'Name', 60);
             event(trip, user, 'renamed a member');
           }

@@ -84,7 +84,9 @@ export default function Group() {
           if (alive) {
             updateTrip(t);
             setError((previous) =>
-              previous.startsWith('Cannot reach your server') || previous === 'Group not found' ? '' : previous,
+              previous.startsWith('Cannot reach your server') || previous === 'Group not found'
+                ? ''
+                : previous,
             );
           }
         } catch (e) {
@@ -106,7 +108,7 @@ export default function Group() {
     setError('');
     try {
       if (method === 'GET') updateTrip(await api<Trip>(`/trips/${id}${path}`));
-      else await mutate(`/trips/${id}${path}`, method, body as Record<string,unknown>);
+      else await mutate(`/trips/${id}${path}`, method, body as Record<string, unknown>);
       return true;
     } catch (e) {
       setError((e as Error).message);
@@ -155,7 +157,10 @@ export default function Group() {
           />
           <Logo small />
           <View style={{ flexDirection: 'row', gap: 7 }}>
-            <NotificationBell groups={[trip]} onPress={() => router.push(`/notifications?group=${trip.id}`)} />
+            <NotificationBell
+              groups={[trip]}
+              onPress={() => router.push(`/notifications?group=${trip.id}`)}
+            />
             <IconButton
               name="ellipsis-horizontal"
               label="Group options"
@@ -211,7 +216,9 @@ export default function Group() {
               share={mine?.spent || 0}
             />
           </Enter>
-          {trip.localOnly && <Text style={s.muted}>Includes changes saved on this device. Waiting to sync.</Text>}
+          {trip.localOnly && (
+            <Text style={s.muted}>Includes changes saved on this device. Waiting to sync.</Text>
+          )}
           <Analytics trip={trip} />
           <View
             style={{
@@ -513,14 +520,18 @@ export default function Group() {
       <Sheet title="Group options" visible={form === 'menu'} onClose={close}>
         <Text style={s.h3}>Take your group with you</Text>
         <Text style={s.muted}>
-          Bills, each person’s share, balances and transfers. The PDF excludes notification history. Exports contain
-          confirmed records only.
+          Bills, each person’s share, balances and transfers. The PDF excludes notification history.
+          Exports contain confirmed records only.
           {pending.some((b) => b.tripId === trip.id)
             ? ' Sync your saved bills first to include them.'
             : ''}
         </Text>
         <ErrorBox text={error} />
-        <Btn secondary title={reportGraph ? '✓ Include graphs in PDF' : 'Include graphs in PDF'} onPress={() => setReportGraph(v => !v)} />
+        <Btn
+          secondary
+          title={reportGraph ? '✓ Include graphs in PDF' : 'Include graphs in PDF'}
+          onPress={() => setReportGraph((v) => !v)}
+        />
         {(['pdf', 'xlsx'] as const).map((format) => (
           <Btn
             key={format}
@@ -567,7 +578,25 @@ export default function Group() {
       <Sheet title="People in this group" visible={form === 'members'} onClose={close}>
         <View style={s.card}>
           <Text style={s.label}>Scan to join this group</Text>
-          <View style={{alignItems:'center',padding:20,backgroundColor:C.white,borderRadius:18}}>{trip.code ? <QRCode value={`splitbill:${trip.code}`} size={160} color={C.dark} backgroundColor={C.white} /> : <Text style={s.muted}>Your invite QR will appear after this group syncs.</Text>}</View>
+          <View
+            style={{
+              alignItems: 'center',
+              padding: 20,
+              backgroundColor: C.white,
+              borderRadius: 18,
+            }}
+          >
+            {trip.code ? (
+              <QRCode
+                value={`splitbill:${trip.code}`}
+                size={160}
+                color={C.dark}
+                backgroundColor={C.white}
+              />
+            ) : (
+              <Text style={s.muted}>Your invite QR will appear after this group syncs.</Text>
+            )}
+          </View>
           <Text style={s.label}>Or share the invite code</Text>
           <Text
             selectable
@@ -592,10 +621,19 @@ export default function Group() {
         {trip.members.map((m, i) => (
           <View style={s.row} key={m.id}>
             <Avatar photo={m.photo} name={m.name} index={i} />
-            <Text style={[s.body, { flex: 1 }]}>
-              {m.name}
-              {m.id === trip.me ? ' (you)' : ''}
-            </Text>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={s.body}>
+                {m.name}
+                {m.id === trip.me ? ' (you)' : ''}
+              </Text>
+              <Text style={{ fontSize: 10, color: C.muted }}>
+                {m.linked
+                  ? `Connected${m.username ? ` · @${m.username}` : ''}`
+                  : m.username
+                    ? 'Username invite · waiting to sync'
+                    : 'Guest · can be claimed'}
+              </Text>
+            </View>
             {trip.isOwner && (
               <Pressable
                 accessibilityRole="button"
@@ -633,27 +671,39 @@ export default function Group() {
         }}
       >
         <Field
-          label="Name"
+          label={memberId ? 'Name' : 'Name or @username'}
           value={memberName}
           onChangeText={setMemberName}
-          placeholder="Your friend’s name"
+          placeholder="Jigyasu or @jigyasu_patel"
           maxLength={60}
+          editable={!trip.members.find((member) => member.id === memberId)?.linked}
         />
+        <Text style={s.muted}>
+          {trip.members.find((member) => member.id === memberId)?.linked
+            ? 'Connected members use their profile name. They can update it in Profile.'
+            : 'Use a name for an unclaimed guest, or @username to add an existing account after syncing.'}
+        </Text>
         <ErrorBox text={error} />
-        <Btn
-          title="Save friend"
-          busy={busy}
-          onPress={async () => {
-            if (
-              await act(`/members${memberId ? `/${memberId}` : ''}`, memberId ? 'PATCH' : 'POST', {
-                name: memberName,
-              })
-            ) {
-              setForm('members');
-              setMemberName('');
-            }
-          }}
-        />
+        {!trip.members.find((member) => member.id === memberId)?.linked && (
+          <Btn
+            title="Save friend"
+            busy={busy}
+            onPress={async () => {
+              if (
+                await act(
+                  `/members${memberId ? `/${memberId}` : ''}`,
+                  memberId ? 'PATCH' : 'POST',
+                  {
+                    name: memberName,
+                  },
+                )
+              ) {
+                setForm('members');
+                setMemberName('');
+              }
+            }}
+          />
+        )}
         {memberId && memberId !== trip.me && (
           <Btn
             title="Remove friend"
@@ -681,7 +731,15 @@ export default function Group() {
                 Original amount {money(detail.originalAmount, detail.currency)} · rate {detail.rate}
               </Text>
             )}
-            {detail.attachments?.map(file => <Btn key={file.id} title={file.name} icon="attach-outline" secondary onPress={() => openAttachment(trip.id, file).catch(e => setError(e.message))} />)}
+            {detail.attachments?.map((file) => (
+              <Btn
+                key={file.id}
+                title={file.name}
+                icon="attach-outline"
+                secondary
+                onPress={() => openAttachment(trip.id, file).catch((e) => setError(e.message))}
+              />
+            ))}
             <Text style={s.h3}>Paid by</Text>
             {detail.payers.map((p) => (
               <View style={s.between} key={p.memberId}>

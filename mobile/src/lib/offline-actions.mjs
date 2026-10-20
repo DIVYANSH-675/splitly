@@ -1,5 +1,9 @@
 import { balances, settlements, expenseFromInput, minor } from './finance.mjs';
 export const operationId = () => `op_${Date.now()}_${Math.random().toString(36).slice(2, 14)}`;
+const pendingPerson = (name) => {
+  const label=String(name||'').trim();
+  return {name:label,linked:false,...(label.startsWith('@')?{username:label.slice(1).toLowerCase()}: {})};
+};
 export function projectAction(trips, action, user) {
   const { path, method, body = {} } = action;
   const parts = path.split('/').filter(Boolean);
@@ -7,7 +11,7 @@ export function projectAction(trips, action, user) {
     if (trips.some((t) => t.id === body.id)) return trips;
     const members = [
       { id: body.me, name: user.name, linked: true },
-      ...(body.guests || []).map((name, i) => ({ id: body.memberIds[i], name, linked: false })),
+      ...(body.guests || []).map((name, i) => ({ id: body.memberIds[i], ...pendingPerson(name) })),
     ];
     return [
       {
@@ -43,9 +47,10 @@ export function projectAction(trips, action, user) {
   } else if (parts[2] === 'categories') {
     trip.categories = [...new Set([...(trip.categories || []), body.name])];
   } else if (parts[2] === 'members') {
-    if (method === 'POST') trip.members.push({ id: body.id, name: body.name, linked: false });
+    if (method === 'POST') trip.members.push({ id: body.id, ...pendingPerson(body.username?`@${body.username}`:body.name) });
     else if (method === 'PATCH') {
       const member = trip.members.find((m) => m.id === parts[3]);
+      if(member?.linked) throw new Error('Connected members use their profile name.');
       if (member) member.name = body.name;
     } else {
       if (
