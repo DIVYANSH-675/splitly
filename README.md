@@ -133,4 +133,4 @@ supabase/                   Private database migration and Edge Function
 
 The repository excludes databases, device sessions, `.env` files, build caches and credentials. The GitHub token is not part of the app.
 
-Warm ivory, forest green, lime accents and bundled Manrope. Artwork is drawn in code; no third-party app artwork is copied. Manrope uses the included [font license](server/assets/Manrope-LICENSE.txt). Workflow inspiration: [Kittysplit](https://www.kittysplit.com/en/help).
+Warm ivory, forest green, lime accents and bundled Manrope. Artwork is drawn in code. Manrope uses the included [font license](server/assets/Manrope-LICENSE.txt).
