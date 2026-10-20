@@ -5,7 +5,9 @@
 - PKCE/state/API/redirect/expiry validation and server-side verified-provider checks are covered by local tests. Linked legacy identities retain group ownership, and a Google identity cannot be connected to two app users.
 - Production registration/password/email routes are disabled. Historical database records are preserved.
 - Local checks: 36 tests passed, TypeScript passed and ESLint passed. Browser inspection confirms the Google-only welcome screen and editable Profile with no backup-email section.
-- Real Google OAuth provider configuration, browser sign-in, Android return flow and APK build are pending; no live Google sign-in success is claimed yet.
+- Live database: the Google identity migration was applied successfully; RLS is enabled, anonymous/authenticated table access is denied, and the app runtime role has its intended access. Supabase Advisor reports no security issues.
+- Google Cloud project `splitbill-512207` was created. Consent configuration is prepared and awaiting user approval of Google’s API Services User Data Policy. Provider activation and real browser/device login are pending.
+- Android workflow [39389907164](https://github.com/DIVYANSH-675/splitly/actions/runs/39389907164) builds source `f74694e`; completion and APK verification are pending. No live Google sign-in success is claimed yet.
 
 # Validation — SplitBill 1.2.1
 

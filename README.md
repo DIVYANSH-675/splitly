@@ -8,7 +8,7 @@ A simple Android app for shared bills. Add a bill or transfer, see everyone’s 
 
 The app uses the dedicated **SplitBill Supabase project** by default. It works without a local computer. First-time Google sign-in, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
 
-<img src="docs/notifications-preview.png" width="260" alt="Full-page group history">
+<img src="docs/google-welcome-preview.png" width="260" alt="SplitBill Google-only sign-in screen"> <img src="docs/notifications-preview.png" width="260" alt="Full-page group history">
 
 <img src="docs/from-to-preview.png" width="260" alt="Side-by-side From and To bill selectors"> <img src="docs/share-picker-preview.png" width="260" alt="Member selection with equal, amount, share and percentage splits">
 
@@ -87,7 +87,7 @@ Local SQLite defaults to `data/memogo.sqlite` for compatibility. Override with `
 
 Version 1.3.0 uses Google as its only sign-in method. Google OAuth setup and a real browser/device sign-in must be completed before publishing the APK as ready for use.
 
-1. In a dedicated Google Cloud project, configure the Google Auth Platform consent screen for SplitBill. Request only `openid`, email and profile scopes. Set the audience appropriately for intended users.
+1. In the dedicated Google Cloud project `splitbill-512207`, configure the Google Auth Platform consent screen for SplitBill. Request only `openid`, email and profile scopes. Set the audience appropriately for intended users.
 2. Create a **Web application** OAuth client with authorized redirect URI `https://gomowueeizpwzzbqugod.supabase.co/auth/v1/callback`.
 3. Enable the Google provider in the matching Supabase project and save the client ID and secret there. Never put the secret in this repository or the mobile app.
 4. Add these Supabase redirect allow-list entries: `splitly://auth/google**` for the Android app and `http://localhost:8081/auth/google**` for the local web preview. The trailing wildcard permits the random callback state. Add only explicitly used development origins; remove unused development entries before a public production deployment.
