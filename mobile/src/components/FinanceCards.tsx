@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from './Typography';
 import { categoryInfo } from '../lib/categories';
 import { C, FacePile, Icon, s } from './ui';
-import { money, prettyDate, type Expense, type Trip } from '../lib/types';
+import { money, type Expense, type Trip } from '../lib/types';
 export function BalanceCard({
   balance,
   currency,
@@ -275,7 +275,7 @@ export function BillCard({
                 .trim(),
             )
             .join(', ')}{' '}
-          paid · {prettyDate(expense.date).replace(/ \d{4}$/, '')}
+          paid
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 7 }}>

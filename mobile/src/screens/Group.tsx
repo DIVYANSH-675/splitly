@@ -39,7 +39,8 @@ import {
   Sheet,
   s,
 } from '../components/ui';
-import { BalanceCard, BillCard } from '../components/FinanceCards';
+import { BalanceCard } from '../components/FinanceCards';
+import { TransactionList } from '../components/TransactionList';
 import { ExpenseForm } from '../components/ExpenseForm';
 import { TransferForm } from '../components/TransferForm';
 import { NotificationBell } from '../components/Notifications';
@@ -145,7 +146,7 @@ export default function Group() {
   const name = (memberId: string) => trip.members.find((m) => m.id === memberId)?.name || 'Member';
   const mine = trip.balances.find((b) => b.id === trip.me);
   const balance = mine?.balance || 0;
-  const bills = [...trip.expenses].sort((a, b) => b.date.localeCompare(a.date));
+  const bills = trip.expenses;
   return (
     <Page>
       <View style={{ paddingHorizontal: 24, paddingTop: compact ? 13 : 20, paddingBottom: 18 }}>
@@ -266,7 +267,7 @@ export default function Group() {
                     color: t === tab ? C.accent : '#7E8B73',
                   }}
                 >
-                  {t === 'Bills' ? 'Shared bills' : 'Settle up'}
+                  {t === 'Bills' ? 'Transactions' : 'Settle up'}
                 </Text>
               </Pressable>
             ))}
@@ -285,21 +286,38 @@ export default function Group() {
         {tab === 'Bills' ? (
           <>
             <View style={[s.between, { paddingTop: 4, paddingBottom: 6 }]}>
-              <Text style={s.eyebrow}>THE SHARED LITTLE THINGS</Text>
+              <Text style={s.eyebrow}>TRANSACTIONS</Text>
               <Text style={{ fontSize: 10, color: C.muted }}>
                 {bills.length} {bills.length === 1 ? 'bill' : 'bills'}
+                {trip.transfers.length
+                  ? ` · ${trip.transfers.length} ${trip.transfers.length === 1 ? 'transfer' : 'transfers'}`
+                  : ''}
               </Text>
             </View>
-            {!bills.length && (
+            {!bills.length && !trip.transfers.length && (
               <Empty
                 icon="receipt-outline"
                 title="The first one’s on someone."
                 text="Dinner, rent, or a round of coffees. Add a bill and let us do the splitting."
               />
             )}
-            {bills.map((e) => (
-              <BillCard key={e.id} expense={e} trip={trip} onPress={() => setDetail(e)} />
-            ))}
+            <TransactionList
+              trip={trip}
+              userId={user.id}
+              onBill={setDetail}
+              onTransfer={(payment) => {
+                setTransfer(payment);
+                setSettlement(undefined);
+                setForm('transfer');
+              }}
+              onRemoveTransfer={(payment) =>
+                setConfirmation({
+                  title: 'Remove payment record?',
+                  text: 'Balances will be recalculated.',
+                  path: `/transfers/${payment.id}`,
+                })
+              }
+            />
           </>
         ) : (
           <>
@@ -410,57 +428,6 @@ export default function Group() {
                 setForm('transfer');
               }}
             />
-          </>
-        )}
-        {trip.transfers.length > 0 && (
-          <>
-            <Text style={[s.eyebrow, { marginTop: 12 }]}>TRANSFERS · NOT EXPENSES</Text>
-            {[...trip.transfers].reverse().map((t) => (
-              <View key={t.id} style={[s.card, { gap: 9 }]}>
-                <View style={s.between}>
-                  <Text style={{ fontSize: 12, color: C.dark, fontWeight: '700', flex: 1 }}>
-                    {name(t.from)} → {name(t.to)}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: C.accent, fontWeight: '700' }}>
-                    {money(t.amount, trip.currency)}
-                  </Text>
-                </View>
-                <View style={s.between}>
-                  <View style={{ flex: 1, gap: 5 }}>
-                    <Text style={s.muted}>{prettyDate(t.date)}</Text>
-                    {Boolean(t.note) && <Text style={s.muted}>{t.note}</Text>}
-                  </View>
-                  {(t.createdBy === user.id || trip.isOwner) && (
-                    <View style={{ flexDirection: 'row', gap: 18, paddingLeft: 10 }}>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Edit transfer"
-                        onPress={() => {
-                          setTransfer(t);
-                          setSettlement(undefined);
-                          setForm('transfer');
-                        }}
-                      >
-                        <Icon name="create-outline" color={C.accent} size={18} />
-                      </Pressable>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Remove payment record"
-                        onPress={() =>
-                          setConfirmation({
-                            title: 'Remove payment record?',
-                            text: 'Balances will be recalculated.',
-                            path: `/transfers/${t.id}`,
-                          })
-                        }
-                      >
-                        <Icon name="trash-outline" color={C.muted} size={17} />
-                      </Pressable>
-                    </View>
-                  )}
-                </View>
-              </View>
-            ))}
           </>
         )}
       </ScrollView>
