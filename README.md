@@ -14,10 +14,10 @@ The app uses the dedicated **SplitBill Supabase project** by default. It works w
 
 - Start with a name and unique username. No email, password or Google account is required to start. An optional verified backup email supports passwordless recovery. The device securely retains an access token; knowing a username alone does not grant access.
 - Create a group with friends’ names. Join using an invite code or scan its QR code. An offline-created group receives its real invite code after syncing.
-- Add bills with equal, exact, percentage or weighted shares; multiple payers are supported.
+- Add bills with equal, exact, percentage or weighted shares; multiple payers are supported. Tap the side-by-side **From · Paid by** and **To · Paid for** cards to select people and adjust their amounts. The share picker keeps **Done** visible while you scroll.
 - Choose a trip category or add a permanent category shared with the group.
 - Optionally attach up to three JPG, PNG, WebP or PDF files per bill, each up to 2 MB. Files are saved on the device before upload and require group membership to download.
-- Record transfers separately: balances change, expense totals do not.
+- Record transfers separately: balances change, expense totals do not. Side-by-side **From** and **To** cards open single-person selectors.
 - Green **+** means money to receive; red **−** means money owed; zero is neutral.
 - Open the notification bell for a full page showing who changed what, with timestamps and before/after details. This is an in-app history page; background push is not configured.
 - Authors edit/delete their own entries. The creator is the group admin and can edit/delete anyone’s entries. The server enforces these permissions.

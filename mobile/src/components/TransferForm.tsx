@@ -3,7 +3,8 @@ import { View } from 'react-native';
 import { Text } from './Typography';
 import { useApp } from '../lib/context';
 import { inputMoney, localDate, type Transfer, type Trip } from '../lib/types';
-import { Btn, Chip, ErrorBox, Field, Sheet, s } from './ui';
+import { Btn, ErrorBox, Field, Sheet, s } from './ui';
+import { PeopleCard, SinglePersonPicker } from './PeoplePicker';
 export function TransferForm({
   trip,
   initial,
@@ -17,7 +18,8 @@ export function TransferForm({
   onClose: () => void;
   onSaved: (t: Trip) => void;
 }) {
-  const {mutate} = useApp();
+  const { mutate } = useApp();
+  const [picking, setPicking] = useState<'from' | 'to' | null>(null);
   const [from, setFrom] = useState(transfer?.from || initial?.from || trip.me),
     [to, setTo] = useState(
       transfer?.to || initial?.to || trip.members.find((m) => m.id !== trip.me)?.id || '',
@@ -32,6 +34,27 @@ export function TransferForm({
     [note, setNote] = useState(transfer?.note || ''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  if (picking)
+    return (
+      <SinglePersonPicker
+        key={picking}
+        title={picking === 'from' ? 'From' : 'To'}
+        members={trip.members}
+        me={trip.me}
+        selected={picking === 'from' ? from : to}
+        onBack={() => setPicking(null)}
+        onDone={(id) => {
+          if (picking === 'from') {
+            if (id === to) setTo(from);
+            setFrom(id);
+          } else {
+            if (id === from) setFrom(to);
+            setTo(id);
+          }
+          setPicking(null);
+        }}
+      />
+    );
   return (
     <Sheet
       visible
@@ -42,17 +65,17 @@ export function TransferForm({
         Record money already sent between two people. It updates balances without adding to trip
         expenses.
       </Text>
-      <Text style={s.label}>From</Text>
-      <View style={s.wrap}>
-        {trip.members.map((m) => (
-          <Chip key={m.id} title={m.name} active={from === m.id} onPress={() => setFrom(m.id)} />
-        ))}
-      </View>
-      <Text style={s.label}>To</Text>
-      <View style={s.wrap}>
-        {trip.members.map((m) => (
-          <Chip key={m.id} title={m.name} active={to === m.id} onPress={() => setTo(m.id)} />
-        ))}
+      <View style={{ flexDirection: 'row', gap: 12, alignItems: 'stretch' }}>
+        <PeopleCard
+          label="From"
+          members={trip.members.filter((member) => member.id === from)}
+          onPress={() => setPicking('from')}
+        />
+        <PeopleCard
+          label="To"
+          members={trip.members.filter((member) => member.id === to)}
+          onPress={() => setPicking('to')}
+        />
       </View>
       <Field
         label={`Amount (${trip.currency})`}
@@ -81,7 +104,7 @@ export function TransferForm({
           setBusy(true);
           try {
             onSaved(
-              await mutate(
+              (await mutate(
                 `/trips/${trip.id}/transfers${transfer ? `/${transfer.id}` : ''}`,
                 transfer ? 'PATCH' : 'POST',
                 {
@@ -91,7 +114,7 @@ export function TransferForm({
                   date: transfer?.date || localDate(),
                   note,
                 },
-              ) as Trip,
+              )) as Trip,
             );
             onClose();
           } catch (e) {

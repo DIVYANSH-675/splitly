@@ -267,7 +267,20 @@ export function Avatar({
   size?: number;
   index?: number;
 }) {
-  if (photo) return <Image source={{uri:photo}} style={{width:size,height:size,borderRadius:size/2,borderWidth:2,borderColor:C.bg}} accessibilityLabel={`${name} profile photo`} />;
+  if (photo)
+    return (
+      <Image
+        source={{ uri: photo }}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: 2,
+          borderColor: C.bg,
+        }}
+        accessibilityLabel={`${name} profile photo`}
+      />
+    );
   const initials = name
     .replace(/\([^)]*\)/g, '')
     .trim()
@@ -357,11 +370,15 @@ export function Sheet({
   title,
   onClose,
   children,
+  onBack,
+  footer,
 }: {
   visible: boolean;
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  onBack?: () => void;
+  footer?: React.ReactNode;
 }) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -382,6 +399,7 @@ export function Sheet({
               }}
             />
             <View style={s.sheetHeader}>
+              {onBack && <IconButton name="arrow-back" label="Back" onPress={onBack} />}
               <Text style={[s.h2, { flex: 1 }]}>{title}</Text>
               <IconButton name="close" label="Close dialog" onPress={onClose} />
             </View>
@@ -396,6 +414,20 @@ export function Sheet({
             >
               {children}
             </ScrollView>
+            {footer && (
+              <View
+                style={{
+                  paddingHorizontal: 25,
+                  paddingTop: 12,
+                  paddingBottom: 16,
+                  borderTopWidth: 1,
+                  borderTopColor: C.line,
+                  backgroundColor: C.bg,
+                }}
+              >
+                {footer}
+              </View>
+            )}
           </SafeAreaView>
         </KeyboardAvoidingView>
       </View>

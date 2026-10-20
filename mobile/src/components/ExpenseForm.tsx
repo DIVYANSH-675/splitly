@@ -5,7 +5,6 @@ import { pickAttachment } from '../lib/attachments';
 import { useApp } from '../lib/context';
 import { categoryInfo, expenseCategories } from '../lib/categories';
 import {
-  currencies,
   inputMoney,
   localDate,
   money,
@@ -16,6 +15,9 @@ import {
   type Trip,
 } from '../lib/types';
 import { Btn, C, Chip, ErrorBox, Field, Icon, Sheet, s } from './ui';
+import { PeopleCard } from './PeoplePicker';
+import { BillPeoplePicker } from './BillPeoplePicker';
+import { expenseFromInput, minor } from '../lib/finance.mjs';
 export function ExpenseForm({
   trip,
   expense,
@@ -34,6 +36,7 @@ export function ExpenseForm({
     expense?.attachments || draft?.body.attachments || [],
   );
   const [newCategory, setNewCategory] = useState('');
+  const [picking, setPicking] = useState<'payers' | 'shares' | null>(null);
   const currency = expense?.currency || draft?.body.currency || trip.currency;
   const [amount, setAmount] = useState(
       expense ? inputMoney(expense.originalAmount, currency) : draft?.body.amount || '',
@@ -42,15 +45,6 @@ export function ExpenseForm({
     [category, setCategory] = useState(expense?.category || draft?.body.category || 'Other'),
     [choosingCategory, setChoosingCategory] = useState(false),
     [mode, setMode] = useState(expense?.mode || draft?.body.mode || 'equal'),
-    [custom, setCustom] = useState(
-      Boolean(
-        (expense && (expense.mode !== 'equal' || expense.payers.length > 1)) ||
-          (draft && (draft.body.mode !== 'equal' || draft.body.payers.length > 1)),
-      ),
-    ),
-    [multiple, setMultiple] = useState(
-      (expense?.payers.length || draft?.body.payers.length || 0) > 1,
-    ),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState(
@@ -93,6 +87,7 @@ export function ExpenseForm({
         shares: selected.map((memberId) => ({ memberId, value: values[memberId] || '0' })),
         payers: payers.map((memberId) => ({ memberId, amount: paid[memberId] || '0' })),
       };
+      expenseFromInput(body, trip);
       if (expense)
         onSaved((await mutate(`/trips/${trip.id}/expenses/${expense.id}`, 'PATCH', body)) as Trip);
       else await addBill(trip.id, body, draft?.id);
@@ -104,11 +99,39 @@ export function ExpenseForm({
     }
   };
   const categoryVisual = categoryInfo(category);
-  const numeric = /^\d+(?:\.\d+)?$/.test(amount) ? Number(amount) : 0;
-  const totalMinor =
-    Number.isFinite(numeric) && numeric > 0 ? Math.round(numeric * 10 ** currencies[currency]) : 0;
+  let totalMinor = 0;
+  try {
+    totalMinor = minor(amount, currency);
+  } catch {
+    /* Amount is still being entered. */
+  }
   const each =
     selected.length && totalMinor ? money(Math.floor(totalMinor / selected.length), currency) : '';
+  if (picking)
+    return (
+      <BillPeoplePicker
+        key={picking}
+        trip={trip}
+        kind={picking}
+        amount={totalMinor}
+        currency={currency}
+        selected={picking === 'payers' ? payers : selected}
+        values={picking === 'payers' ? paid : values}
+        mode={picking === 'payers' ? 'exact' : mode}
+        onBack={() => setPicking(null)}
+        onDone={(ids, entries, nextMode) => {
+          if (picking === 'payers') {
+            setPayers(ids);
+            setPaid(entries);
+          } else {
+            setSelected(ids);
+            setValues(entries);
+            setMode(nextMode);
+          }
+          setPicking(null);
+        }}
+      />
+    );
   return (
     <Sheet visible title={expense || draft ? 'Edit bill' : 'Add a bill'} onClose={onClose}>
       <Field
@@ -133,6 +156,38 @@ export function ExpenseForm({
         placeholder="e.g. Dinner"
         maxLength={120}
       />
+      <View style={{ gap: 12 }}>
+        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'stretch' }}>
+          <PeopleCard
+            label="From"
+            caption="Paid by"
+            members={trip.members.filter((member) => payers.includes(member.id))}
+            summary={payers.length > 1 ? 'Multiple people paid' : 'Who paid the bill'}
+            onPress={() => setPicking('payers')}
+          />
+          <PeopleCard
+            label="To"
+            caption="Paid for"
+            members={trip.members.filter((member) => selected.includes(member.id))}
+            summary={
+              mode === 'equal'
+                ? `Equal split · ${selected.length} people`
+                : mode === 'exact'
+                  ? 'Custom amounts'
+                  : mode === 'percent'
+                    ? 'Split by percent'
+                    : 'Split by shares'
+            }
+            onPress={() => setPicking('shares')}
+          />
+        </View>
+        {mode === 'equal' && Boolean(each) && (
+          <Text style={{ fontSize: 12, color: C.accent, fontWeight: '600' }}>
+            {totalMinor % selected.length ? 'About ' : ''}
+            {each} each · tap To to change shares
+          </Text>
+        )}
+      </View>
       <View style={{ gap: 10 }}>
         <Text style={s.label}>Category</Text>
         <Pressable
@@ -243,112 +298,6 @@ export function ExpenseForm({
           JPG, PNG, WebP or PDF · up to 2 MB each. Saved on your device until synced.
         </Text>
       </View>
-      <Text style={s.label}>Who paid?</Text>
-      <View style={s.wrap}>
-        {trip.members.map((m) => (
-          <Chip
-            key={m.id}
-            title={m.name}
-            active={payers.includes(m.id)}
-            onPress={() =>
-              setPayers((prev) =>
-                multiple
-                  ? prev.includes(m.id)
-                    ? prev.filter((id) => id !== m.id)
-                    : [...prev, m.id]
-                  : [m.id],
-              )
-            }
-          />
-        ))}
-      </View>
-      {multiple &&
-        payers.map((id) => (
-          <Field
-            key={id}
-            label={`${trip.members.find((m) => m.id === id)?.name} paid (${currency})`}
-            value={paid[id] || ''}
-            onChangeText={(v) => setPaid((prev) => ({ ...prev, [id]: v }))}
-            keyboardType="decimal-pad"
-            placeholder="0.00"
-          />
-        ))}
-      <View style={{ backgroundColor: C.pale, padding: 17, borderRadius: 19, gap: 13 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={{ backgroundColor: '#DCE6CB', padding: 9, borderRadius: 12 }}>
-            <Icon name="people-outline" color={C.accent} size={18} />
-          </View>
-          <View style={{ flex: 1, gap: 5 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: C.accent }}>
-              {mode === 'equal'
-                ? `Split equally · ${selected.length} people`
-                : 'Custom split selected'}
-            </Text>
-            {mode === 'equal' && Boolean(each) && (
-              <Text style={{ fontSize: 11, color: C.muted }}>
-                {totalMinor % selected.length ? 'About ' : ''}
-                {each} each
-              </Text>
-            )}
-          </View>
-        </View>
-        <Pressable accessibilityRole="button" onPress={() => setCustom((v) => !v)}>
-          <Text style={s.link}>{custom ? 'Hide split options ↑' : 'Split differently →'}</Text>
-        </Pressable>
-      </View>
-      {custom && (
-        <>
-          <Text style={s.label}>Split between</Text>
-          <View style={s.wrap}>
-            {trip.members.map((m) => (
-              <Chip
-                key={m.id}
-                title={`${selected.includes(m.id) ? '✓ ' : ''}${m.name}`}
-                active={selected.includes(m.id)}
-                onPress={() =>
-                  setSelected((prev) =>
-                    prev.includes(m.id) ? prev.filter((id) => id !== m.id) : [...prev, m.id],
-                  )
-                }
-              />
-            ))}
-          </View>
-          <View style={s.wrap}>
-            {[
-              { id: 'equal', name: 'Equally' },
-              { id: 'exact', name: 'Exact amounts' },
-              { id: 'percent', name: 'Percentages' },
-              { id: 'shares', name: 'Shares' },
-            ].map((m) => (
-              <Chip
-                key={m.id}
-                title={m.name}
-                active={mode === m.id}
-                onPress={() => setMode(m.id)}
-              />
-            ))}
-          </View>
-          {mode !== 'equal' &&
-            selected.map((id) => (
-              <Field
-                key={id}
-                label={`${trip.members.find((m) => m.id === id)?.name} (${mode === 'percent' ? '%' : mode === 'shares' ? 'shares' : currency})`}
-                value={values[id] || ''}
-                onChangeText={(v) => setValues((prev) => ({ ...prev, [id]: v }))}
-                keyboardType="decimal-pad"
-                placeholder="0"
-              />
-            ))}
-          <Chip
-            title="Multiple people paid"
-            active={multiple}
-            onPress={() => {
-              setMultiple((v) => !v);
-              if (multiple) setPayers((p) => p.slice(0, 1));
-            }}
-          />
-        </>
-      )}
       <ErrorBox text={error} />
       {!expense && (
         <Text style={s.muted}>
