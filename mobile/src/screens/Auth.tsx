@@ -4,6 +4,7 @@ import { Text } from '../components/Typography';
 import { C, Enter, Icon, Logo, Page, s } from '../components/ui';
 import { GoogleSignIn } from '../components/GoogleSignIn';
 import { version } from '../../package.json';
+import { SupportLinks } from '../components/SupportLinks';
 
 export default function Auth() {
   return (
@@ -27,6 +28,7 @@ export default function Auth() {
           <Text style={[s.muted, { textAlign: 'center' }]}>Your Google name and photo get you started. Make them your own in Profile.</Text>
           <Text style={{ fontSize: 11, color: C.muted, textAlign: 'center' }}>Already have an account? Choose the same Google account.</Text>
         </View>
+        <SupportLinks />
         <View style={{ flex: 1 }} />
         <Text style={{ fontSize: 10, textAlign: 'center', color: C.muted }}>SplitBill {version}</Text>
       </ScrollView>

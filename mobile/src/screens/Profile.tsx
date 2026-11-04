@@ -11,6 +11,7 @@ import { PaperArt } from '../components/FinanceCards';
 import Auth from './Auth';
 import { version } from '../../package.json';
 import { GoogleSignIn } from '../components/GoogleSignIn';
+import { SupportLinks } from '../components/SupportLinks';
 export default function Profile() {
   const { user, setUser, signOut, mutate } = useApp();
   const [name, setName] = useState<string | null>(null),
@@ -141,6 +142,7 @@ export default function Profile() {
             }}
           />
         )}
+        <SupportLinks />
         <View
           style={{ alignItems: 'center', transform: [{ scale: 0.7 }], height: 128, marginTop: 5 }}
         >
