@@ -1,3 +1,12 @@
+# SplitBill 1.3.1 — Play release preparation
+
+- Choose an expense date when adding a bill, or correct the date while editing it.
+- Use the native calendar picker on Android/iOS and a date field on web.
+- Preserve selected dates in offline queues and group transactions under the corrected day.
+- Configure production Android App Bundle builds under the developerg Expo account.
+
+This is not a published Play Store release. Play Console declarations, privacy/account-deletion support and device acceptance remain outstanding.
+
 # SplitBill 1.3.0 preview
 
 - Sign in with Google and start with your Google name and profile photo.

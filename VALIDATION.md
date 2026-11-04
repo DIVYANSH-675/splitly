@@ -1,3 +1,10 @@
+# Validation — SplitBill 1.3.1 date editing (2026-11-04)
+
+- All 39 tests pass; TypeScript and ESLint pass. Date coverage includes leap days, invalid dates, local calendar conversion in Asia/Kolkata, America/Los_Angeles and Pacific/Kiritimati, API add/edit/reload, audit before/after values, and unchanged balances. Offline tests preserve the selected date after restart, correction and replay.
+- Browser test used a disposable local in-memory database. A bill saved with 30 Oct 2026 appeared under that heading; editing to 29 Oct survived opening the payer selector, saving and a full page reload. No production expenses were changed.
+- Android production build is in progress in the developerg-owned Expo project. Native date-picker interaction and Google OAuth return on a physical Android device remain unverified.
+- Google Play account verified as Divyansh007 / developerg675@gmail.com. `com.divyansh.splitly` is available. Create-app fields are prepared but legal declarations are not accepted, and no listing has been submitted.
+
 # Validation — SplitBill 1.3.0 preview
 
 - Google-only welcome screen; backup-email and manual name/username signup removed.

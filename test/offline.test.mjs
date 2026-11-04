@@ -13,7 +13,7 @@ const storage = () => {
 const bill = (id = 'bill_local_1234567890') => ({
   id,
   tripId: 'group',
-  body: { title: 'Offline dinner', amount: '900' },
+  body: { title: 'Offline dinner', amount: '900', date: '2026-10-20' },
   createdAt: new Date().toISOString(),
 });
 test('offline queue survives restart, network failures and retry with the same ID', async () => {
@@ -22,6 +22,7 @@ test('offline queue survives restart, network failures and retry with the same I
   await box.put(bill());
   box = new Outbox(disk, 'userA');
   a.equal((await box.load()).length, 1);
+  a.equal((await box.load())[0].body.date, '2026-10-20');
   const seen = [];
   await box.flush(
     async (item) => {
@@ -56,11 +57,11 @@ test('validation failures remain visible; edited drafts can be retried; accounts
     () => a.fail('Invalid draft should wait for correction'),
     () => {},
   );
-  await box.put({ ...bill(), body: { title: 'Corrected', amount: '900' } });
+  await box.put({ ...bill(), body: { title: 'Corrected', amount: '900', date: '2026-10-18' } });
   a.equal((await box.load())[0].error, '');
   a.deepEqual(await new Outbox(disk, 'userB').load(), []);
   await box.flush(
-    async () => ({ id: 'group' }),
+    async (item) => { a.equal(item.body.date, '2026-10-18'); return { id: 'group' }; },
     () => {},
   );
   a.deepEqual(await box.load(), []);

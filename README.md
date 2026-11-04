@@ -4,6 +4,8 @@ A simple Android app for shared bills. Add a bill or transfer, see everyone’s 
 
 ## Android app
 
+**Version 1.3.1 adds an expense date picker when adding or editing bills.** The production Play Store bundle is being prepared; the app is not published on Google Play yet. The downloadable preview below remains version 1.3.0.
+
 **Version 1.3.0 APKs are built and verified. Google sign-in is enabled and a real browser login has passed; Android device sign-in remains to be verified.** Download the [1.3.0 preview](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.3.0): [ARM64 APK (36.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.3.0/SplitBill-1.3.0-arm64-v8a.apk) or [older 32-bit APK (27.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.3.0/SplitBill-1.3.0-armeabi-v7a.apk). Choose **arm64-v8a** for most current Android phones. These are preview builds, not Play Store releases. The package and signing certificate match the previous release: install over it without uninstalling or clearing app data. Old release listings have been retired; source history is retained.
 
 The app uses the dedicated **SplitBill Supabase project** by default. The Google provider and backend are deployed, and the provider credentials have passed a real browser sign-in. The hosted service needs no local computer. First-time Google sign-in, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
@@ -20,6 +22,7 @@ The app uses the dedicated **SplitBill Supabase project** by default. The Google
 - Create a group with comma-separated names and @usernames, for example `Jigyasu, @priya_27`. Names create unclaimed guests. Valid @usernames link existing accounts after sync, so the group automatically appears for them. Unknown usernames produce a clear sync error.
 - Join with an invite code or QR scan, then choose an unclaimed guest name or join as a new member. Claiming keeps the same member ID, previous bills/transfers and balance, and shows your profile name. Connected accounts cannot be claimed; existing bills keep their original authors and permissions. An offline-created group receives its real invite code after syncing.
 - Add bills with equal, exact, percentage or weighted shares; multiple payers are supported. Tap the side-by-side **From · Paid by** and **To · Paid for** cards to select people and adjust their amounts. The share picker keeps **Done** visible while you scroll.
+- Choose or correct an expense date in Add a bill and Edit bill. The selected calendar day is preserved offline, audited when changed, and used for the transaction date heading.
 - Choose a trip category or add a permanent category shared with the group.
 - Optionally attach up to three JPG, PNG, WebP or PDF files per bill, each up to 2 MB. Files are saved on the device before upload and require group membership to download.
 - Transactions share one date heading per day, newest dates first. Bill and transfer cards do not repeat the date. Full transaction dates remain available in bill details and exported reports.
@@ -101,7 +104,7 @@ The app uses a random PKCE verifier and state, a ten-minute pending-login expiry
 
 [Android APK workflow](.github/workflows/android.yml) runs tests, typecheck and lint, generates the native project, and builds separate ARM64/ARMv7 APKs. R8 minification, resource shrinking and bundle compression are enabled to reduce download size. Native Android/iOS directories are generated and not committed.
 
-The repository variable `EXPO_PUBLIC_API_URL` chooses the backend at build time. Preview builds use a generated debug signing key. Production signing, a stable release key, Play Store submission, operational backups and physical-device acceptance testing need separate setup. `mobile/eas.json` also provides EAS build profiles.
+The repository variable `EXPO_PUBLIC_API_URL` chooses the backend at build time. Preview builds use a generated debug signing key. The production EAS profile builds a signed Android App Bundle with the hosted HTTPS API and cleartext traffic disabled. The Expo project is `@meridian-max/splitly`, owned by the developerg account. Play Store submission, privacy/deletion support, operational backups and physical-device acceptance testing remain separate release requirements. `mobile/eas.json` provides the build profiles.
 
 ## Verification
 

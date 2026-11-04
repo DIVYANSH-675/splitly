@@ -18,6 +18,8 @@ import { Btn, C, Chip, ErrorBox, Field, Icon, Sheet, s } from './ui';
 import { PeopleCard } from './PeoplePicker';
 import { BillPeoplePicker } from './BillPeoplePicker';
 import { expenseFromInput, minor } from '../lib/finance.mjs';
+import { ExpenseDateField } from './ExpenseDateField';
+import { isCalendarDate } from '../lib/expense-date.mjs';
 export function ExpenseForm({
   trip,
   expense,
@@ -36,6 +38,7 @@ export function ExpenseForm({
     expense?.attachments || draft?.body.attachments || [],
   );
   const [newCategory, setNewCategory] = useState('');
+  const [date, setDate] = useState(expense?.date ?? draft?.body.date ?? localDate());
   const [picking, setPicking] = useState<'payers' | 'shares' | null>(null);
   const currency = expense?.currency || draft?.body.currency || trip.currency;
   const [amount, setAmount] = useState(
@@ -74,13 +77,14 @@ export function ExpenseForm({
     setBusy(true);
     setError('');
     try {
+      if (!isCalendarDate(date)) throw new Error('Choose a valid expense date.');
       const body: BillInput = {
         title,
         attachments,
         amount,
         currency,
         rate: expense?.rate || draft?.body.rate || 1,
-        date: expense?.date || draft?.body.date || localDate(),
+        date,
         category,
         note: expense?.note || draft?.body.note || '',
         mode,
@@ -157,6 +161,7 @@ export function ExpenseForm({
         maxLength={120}
       />
       <View style={{ gap: 12 }}>
+        <ExpenseDateField value={date} onChange={setDate} />
         <View style={{ flexDirection: 'row', gap: 12, alignItems: 'stretch' }}>
           <PeopleCard
             label="From"

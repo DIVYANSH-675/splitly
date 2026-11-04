@@ -126,6 +126,21 @@ test('authors edit their entries, admin edits anyone, peers cannot; history keep
   a.ok(trip.activity[0].changes.some((c) => c.before === 'Dinner' && c.after === ''));
   a.ok(trip.activity.some((e) => e.id === 'legacy-349'));
 });
+test('expense dates can be chosen, edited, reloaded and audited without changing balances', async (t) => {
+  const { request, path, body, author } = await fixture(t);
+  let trip = await request(`${path}/expenses`, 'POST', { ...body, date: '2024-02-29' }, author.token);
+  const bill = trip.expenses[0];
+  a.equal(bill.date, '2024-02-29');
+  const total = trip.total;
+  trip = await request(`${path}/expenses/${bill.id}`, 'PATCH', { ...body, date: '2026-11-01' }, author.token);
+  a.equal(trip.total, total);
+  a.ok(trip.activity[0].changes.some(change => change.field.endsWith('Date') && change.before === '2024-02-29' && change.after === '2026-11-01'));
+  trip = await request(path, 'GET', undefined, author.token);
+  a.equal(trip.expenses[0].date, '2026-11-01');
+  await request(`${path}/expenses/${bill.id}`, 'PATCH', { ...body, date: '2026-02-29' }, author.token, 400);
+  trip = await request(path, 'GET', undefined, author.token);
+  a.equal(trip.expenses[0].date, '2026-11-01');
+});
 test('offline request replay is idempotent, even after the saved bill is deleted', async (t) => {
   const { request, path, body, author } = await fixture(t);
   const payload = { ...body, clientRequestId: 'bill_device_1234567890' };

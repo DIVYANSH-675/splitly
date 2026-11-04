@@ -13,7 +13,8 @@ test('offline group, transfer and custom category survive a restart without chan
 test('offline edits recalculate allocations without mutating the confirmed cache',()=>{
  const user={id:'u',name:'Alex'};
  const initial={id:'g',name:'Trip',members:[{id:'a',name:'Alex'},{id:'j',name:'Jo'}],expenses:[],transfers:[],currency:'INR',categories:[]};
- const action={path:'/trips/g/expenses/b',method:'PATCH',createdAt:'2026-10-20T10:00:00Z',body:{id:'b',title:'Lunch',category:'Food & drinks',amount:'99.99',currency:'INR',mode:'equal',payers:[{memberId:'a'}],shares:[{memberId:'a'},{memberId:'j'}]}};
+ const action={path:'/trips/g/expenses/b',method:'PATCH',createdAt:'2026-10-20T10:00:00Z',body:{id:'b',title:'Lunch',date:'2026-10-18',category:'Food & drinks',amount:'99.99',currency:'INR',mode:'equal',payers:[{memberId:'a'}],shares:[{memberId:'a'},{memberId:'j'}]}};
  const [group]=projectActions([initial],[action],user);
  a.equal(initial.expenses.length,0);a.equal(group.total,9999);a.equal(group.balances.reduce((s,b)=>s+b.balance,0),0);a.equal(group.expenses[0].shares.reduce((s,p)=>s+p.amount,0),9999);
+ a.equal(group.expenses[0].date,'2026-10-18');
 });
