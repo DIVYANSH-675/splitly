@@ -1,9 +1,13 @@
-# Validation — SplitBill 1.3.1 date editing (2026-11-04)
+# Validation — SplitBill 1.3.1 Play internal test (2026-11-04)
 
 - All 39 tests pass; TypeScript and ESLint pass. Date coverage includes leap days, invalid dates, local calendar conversion in Asia/Kolkata, America/Los_Angeles and Pacific/Kiritimati, API add/edit/reload, audit before/after values, and unchanged balances. Offline tests preserve the selected date after restart, correction and replay.
 - Browser test used a disposable local in-memory database. A bill saved with 30 Oct 2026 appeared under that heading; editing to 29 Oct survived opening the payer selector, saving and a full page reload. No production expenses were changed.
-- Android production build is in progress in the developerg-owned Expo project. Native date-picker interaction and Google OAuth return on a physical Android device remain unverified.
-- Google Play account verified as Divyansh007 / developerg675@gmail.com. `com.divyansh.splitly` is available. Create-app fields are prepared but legal declarations are not accepted, and no listing has been submitted.
+- Production EAS build `9bd2057a-da24-49bf-afa4-e19dc07af399` completed from client commit `cec90ec`. Signed bundle `com.divyansh.splitly`, version 1.3.1, code 9, min SDK 24 and target SDK 36 passed bundletool validation, ZIP integrity and JAR signature verification. All 56 packaged 64-bit ELF libraries have load-segment alignment of at least 16 KiB. Cleartext traffic is disabled and the unused overlay permission is excluded. Native date-picker interaction and Google OAuth return on a physical Android device remain unverified.
+- Google Play draft app created in Divyansh007 / developerg675@gmail.com after explicit approval of the developer-policy and export declarations. Build 9 is published and Active on the internal-testing track, with the developer email as the sole selected tester. The opt-in link displays the expected invitation under that Google account. Play estimates 16.8 MB for new installs. This is not a public production release; Play requires a closed test with at least 12 opted-in testers for 14 continuous days before the account can apply for production access.
+- Public privacy and deletion-request pages are live, profile/sign-in support links are included, and the owner approved manual deletion requests via developerg email with a target of 30 days after ownership verification. Google OAuth branding now points to these pages and its audience status is In production. Store metadata, icon, graphic and two actual UI captures are saved. The icon and feature graphic are AI-labelled; screenshots are unaltered browser renders with synthetic data, not Android-device captures.
+- Data safety answers for all 11 selected data types are prepared as a draft. Final submission is blocked by Target audience, which is blocked by reusable reviewer sign-in details. No main Google-account password has been shared with reviewers. The reviewer-login/demo-mode choice is pending. The IARC contact/category are prepared, with its separate Terms of Use left unchecked pending owner approval.
+
+- AAB: 80,134,650 bytes; SHA-256 `8760416b5ace8403b49f713f527018d5ab99b99e395d08612bb0480645cc5cd0`. This multi-architecture upload size is not the per-device Play download size.
 
 # Validation — SplitBill 1.3.0 preview
 

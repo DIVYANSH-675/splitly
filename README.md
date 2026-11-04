@@ -4,9 +4,11 @@ A simple Android app for shared bills. Add a bill or transfer, see everyone’s 
 
 ## Android app
 
-**Version 1.3.1 adds an expense date picker when adding or editing bills.** The production Play Store bundle is being prepared; the app is not published on Google Play yet. The downloadable preview below remains version 1.3.0.
+**Version 1.3.1 (build 9) is active in Google Play internal testing.** It adds an expense date picker when adding or editing bills, plus privacy and deletion-support links. [Join the internal test](https://play.google.com/apps/internaltest/4701212314015548936) with an email selected for the test (initially `developerg675@gmail.com`). Play may show the temporary name `com.divyansh.splitly (unreviewed)` until app review is complete. The app is not publicly available in production yet. Play estimates a 16.8 MB download for new installs; size varies by device. The older GitHub APK preview below remains version 1.3.0. [Current AAB and source archive](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.3.1) are for developers; install through the Play test link.
 
-**Version 1.3.0 APKs are built and verified. Google sign-in is enabled and a real browser login has passed; Android device sign-in remains to be verified.** Download the [1.3.0 preview](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.3.0): [ARM64 APK (36.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.3.0/SplitBill-1.3.0-arm64-v8a.apk) or [older 32-bit APK (27.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.3.0/SplitBill-1.3.0-armeabi-v7a.apk). Choose **arm64-v8a** for most current Android phones. These are preview builds, not Play Store releases. The package and signing certificate match the previous release: install over it without uninstalling or clearing app data. Old release listings have been retired; source history is retained.
+The Play build uses production signing. Before replacing an old debug-signed APK preview, connect Google, sync all pending changes and confirm your cloud groups are saved. The old preview may need to be removed before Play can install the new build.
+
+**Older direct APK preview — version 1.3.0.** Browser Google sign-in passed for that preview; Android device sign-in remains unverified. Download the [1.3.0 preview](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.3.0): [ARM64 APK (36.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.3.0/SplitBill-1.3.0-arm64-v8a.apk) or [older 32-bit APK (27.9 MB)](https://github.com/DIVYANSH-675/splitly/releases/download/v1.3.0/SplitBill-1.3.0-armeabi-v7a.apk). Choose **arm64-v8a** for most current Android phones. These are preview builds, not Play Store releases. The package and signing certificate match the previous release: install over it without uninstalling or clearing app data. Old release listings have been retired; source history is retained.
 
 The app uses the dedicated **SplitBill Supabase project** by default. The Google provider and backend are deployed, and the provider credentials have passed a real browser sign-in. The hosted service needs no local computer. First-time Google sign-in, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
 
@@ -137,3 +139,7 @@ supabase/                   Private database migration and Edge Function
 The repository excludes databases, device sessions, `.env` files, build caches and credentials. The GitHub token is not part of the app.
 
 Warm ivory, forest green, lime accents and bundled Manrope. Artwork is drawn in code. Manrope uses the included [font license](server/assets/Manrope-LICENSE.txt).
+
+## Privacy and support
+
+[Privacy policy](https://divyansh-675.github.io/splitly/store/privacy.html) · [Request account deletion](https://divyansh-675.github.io/splitly/store/delete-account.html). Support: developerg675@gmail.com. The developer handles verified deletion requests manually, aiming to complete them within 30 days. See [deletion operations](docs/ACCOUNT_DELETION.md) and [Play release status](docs/PLAY_STORE.md).
