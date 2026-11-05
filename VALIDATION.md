@@ -13,6 +13,14 @@
 
 # Validation — SplitBill
 
+## 1.3.3 APK artifacts
+
+- [Android workflow 42034703228](https://github.com/DIVYANSH-675/splitly/actions/runs/42034703228) completed both ABI jobs successfully from client commit `ce1ae3ef6b0e46afac3bfca1a36f61af922454f2`. Both APKs pass ZIP integrity, package/version (1.3.3/code 11), min SDK 24, target SDK 36, correct single ABI, disabled backup and latest-client string checks.
+- Both APK v2 signatures match the existing preview certificate (`fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`). All 28 ARM64 ELF libraries have at least 16 KiB load alignment, and all 28 stored native entries are ZIP-aligned to 16 KiB. No advertising-ID, overlay, microphone or broad media/storage permission is present.
+- ARM64: 37,534,667 bytes; SHA-256 `8bf0d2b48e36e317c4419205f013321b435c01f36ed37ab7316e229d0b2395d6`.
+- ARMv7: 28,538,871 bytes; SHA-256 `3d6dde7afd137668de82a179179360fe983af959c6e106451d45845c871c985a`.
+- Android/Hermes export also passes for this final client. Physical-phone installation, native SDK traffic and interaction remain unverified. Production AAB verification and Play build-11 publication are pending.
+
 ## 1.3.2 Google return fix (2026-11-05)
 
 - 43 automated tests pass, including native return ordering, cancellation followed by a delayed link, process-restart recovery, and rejected state/expired proofs. TypeScript and ESLint pass.

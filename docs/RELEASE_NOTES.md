@@ -6,7 +6,7 @@
 - Let adults explore, edit, reset and exit a synthetic sample ledger without an account. Local profile photos, receipt attachments, sample @usernames and invitation/claim flows are available. PDF/XLSX exports are generated locally. Real users and cloud groups are never contacted by the demo.
 - Disable Android cloud backup and device transfer of app data. Clearing data or uninstalling loses local-only ledgers.
 
-Build 11 is being prepared for testing. Public release still requires completed app-content declarations, closed testing and Google approval. Native parent setup, SDK traffic, installation and OAuth return require physical-device acceptance.
+Build 11 APK previews are available from [GitHub Releases](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.3.3). Play internal-test upload is pending. Public release still requires completed app-content declarations, closed testing and Google approval. Native parent setup, SDK traffic, installation and OAuth return require physical-device acceptance.
 
 # SplitBill 1.3.2 — Google sign-in return
 
