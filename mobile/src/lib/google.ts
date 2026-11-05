@@ -5,8 +5,21 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { api, baseUrl } from './api';
 import { googleAuthorizeUrl, googleCallback, type GooglePending } from './google-flow.mjs';
+import { createNativeGoogleFlow } from './google-native.mjs';
 const pendingKey = 'splitbill.google.pending';
-let nativeAuthActive = false;
+const nativeFlow = createNativeGoogleFlow({
+  storage: {
+    save: (pending) => SecureStore.setItemAsync(pendingKey, JSON.stringify(pending)),
+    load: async () => {
+      const raw = await SecureStore.getItemAsync(pendingKey);
+      return raw ? JSON.parse(raw) : null;
+    },
+    remove: () => SecureStore.deleteItemAsync(pendingKey),
+  },
+  openBrowser: WebBrowser.openAuthSessionAsync,
+  apiUrl: () => baseUrl,
+});
+export const redirectGoogleSystemPath = nativeFlow.redirectSystemPath;
 export async function beginGoogle(link = false) {
   const { authorizeUrl } = await api<{authorizeUrl:string}>('/google/config');
   const randomHex = async () => Array.from(await Crypto.getRandomBytesAsync(32), b => b.toString(16).padStart(2,'0')).join('');
@@ -22,28 +35,16 @@ export async function beginGoogle(link = false) {
     window.location.assign(url);
     return null;
   }
-  await SecureStore.setItemAsync(pendingKey, JSON.stringify(pending));
-  nativeAuthActive = true;
-  try {
-    const result = await WebBrowser.openAuthSessionAsync(url,redirect);
-    if (result.type !== 'success') return null;
-    return {...googleCallback(result.url,pending,baseUrl),link};
-  } finally {
-    nativeAuthActive = false;
-    await SecureStore.deleteItemAsync(pendingKey);
-  }
+  return nativeFlow.begin(url, pending);
 }
-export async function resumeGoogle() {
-  if (Platform.OS !== 'web' && nativeAuthActive) return null;
-  const raw = Platform.OS === 'web'
-    ? window.sessionStorage.getItem(pendingKey)
-    : await SecureStore.getItemAsync(pendingKey);
-  const callback = Platform.OS === 'web' ? window.location.href : await Linking.getInitialURL();
-  if (Platform.OS === 'web') {
-    window.sessionStorage.removeItem(pendingKey);
-    // Remove the short-lived code from the address bar before exchanging it.
-    window.history.replaceState(null,'','/auth/google');
-  } else await SecureStore.deleteItemAsync(pendingKey);
+export async function resumeGoogle(nativeCallback?: string) {
+  if (Platform.OS !== 'web')
+    return nativeFlow.resume(nativeCallback || await Linking.getInitialURL() || '');
+  const raw = window.sessionStorage.getItem(pendingKey);
+  const callback = window.location.href;
+  window.sessionStorage.removeItem(pendingKey);
+  // Remove the short-lived code from the address bar before exchanging it.
+  window.history.replaceState(null,'','/auth/google');
   const pending:GooglePending|null = raw ? JSON.parse(raw) : null;
-  return {...googleCallback(callback || '',pending,baseUrl),link:Boolean(pending?.link)};
+  return {...googleCallback(callback,pending,baseUrl),link:Boolean(pending?.link)};
 }

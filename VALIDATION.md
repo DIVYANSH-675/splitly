@@ -1,4 +1,14 @@
-# Validation — SplitBill 1.3.1 Play internal test (2026-11-04)
+# Validation — SplitBill
+
+## 1.3.2 Google return fix (2026-11-05)
+
+- 43 automated tests pass, including native return ordering, cancellation followed by a delayed link, process-restart recovery, and rejected state/expired proofs. TypeScript and ESLint pass.
+- A live native sign-in is owned by the browser-session handler. Expo Router ignores that same warm callback instead of mounting another auth screen; cold and delayed callbacks retain their recovery route and use the current callback parameters.
+- Android Custom Tabs use the app task instead of a separate proxy task. Home shows a progress indicator during token exchange; a temporary group-fetch failure after successful authentication no longer reports sign-in failure.
+- PKCE, state, API binding, ten-minute expiry, Google account permissions and secure token storage remain enforced. No production auth configuration or database changes were needed.
+- Android production build 10 is being prepared. Physical-phone OAuth return/Back behavior is not yet verified; automated lifecycle tests do not substitute for a phone test.
+
+## 1.3.1 Play internal test (2026-11-04)
 
 - All 39 tests pass; TypeScript and ESLint pass. Date coverage includes leap days, invalid dates, local calendar conversion in Asia/Kolkata, America/Los_Angeles and Pacific/Kiritimati, API add/edit/reload, audit before/after values, and unchanged balances. Offline tests preserve the selected date after restart, correction and replay.
 - Browser test used a disposable local in-memory database. A bill saved with 30 Oct 2026 appeared under that heading; editing to 29 Oct survived opening the payer selector, saving and a full page reload. No production expenses were changed.

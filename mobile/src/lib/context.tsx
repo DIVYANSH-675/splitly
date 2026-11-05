@@ -17,6 +17,7 @@ import {
 type Context = {
   user: User | null;
   ready: boolean;
+  signingIn: boolean;
   trips: Trip[];
   error: string;
   online: boolean;
@@ -54,6 +55,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [syncing, setSyncing] = useState(false),
     [seen, setSeen] = useState<Record<string, string>>({});
   const [actions, setActions] = useState<PendingAction[]>([]);
+  const [signingIn, setSigningIn] = useState(false);
   const actionBox = useRef<Outbox<PendingAction, Trip | User | { ok: boolean }> | null>(null);
   const outbox = useRef<Outbox | null>(null);
   const currentUser = useRef<string | null>(null);
@@ -333,6 +335,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         ready,
+        signingIn,
         trips: user ? projectActions(trips, actions, user) : trips,
         actions,
         removeAction: async (id) => {
@@ -357,11 +360,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         seen,
         setError,
         completeGoogle: async ({code,verifier,link}) => {
-          if (link) {setUser(await api<User>('/google/link','POST',{code,verifier}));return;}
-          const result = await api<{token:string;user:User}>('/google/login','POST',{code,verifier});
-          await setToken(result.token);
-          setSeen({});setPending([]);setActions([]);setUser(result.user);
-          await refresh();
+          setSigningIn(true);
+          try {
+            if (link) {setUser(await api<User>('/google/link','POST',{code,verifier}));return;}
+            const result = await api<{token:string;user:User}>('/google/login','POST',{code,verifier});
+            await setToken(result.token);
+            setSeen({});setPending([]);setActions([]);setUser(result.user);
+            try {
+              await refresh();
+            } catch (e) {
+              if (e instanceof ApiError && e.status === 401) throw e;
+              // Authentication succeeded even if loading groups temporarily fails.
+              setError('Signed in. Your groups will load when the connection returns.');
+            }
+          } finally {
+            setSigningIn(false);
+          }
         },
         signOut,
         refresh,

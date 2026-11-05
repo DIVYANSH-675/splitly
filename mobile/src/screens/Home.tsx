@@ -25,7 +25,7 @@ import { NotificationBell } from '../components/Notifications';
 import { SyncStatus } from '../components/PendingBills';
 import Auth from './Auth';
 export default function Home() {
-  const { user, ready, trips, refresh, updateTrip, error, setError } = useApp();
+  const { user, ready, signingIn, trips, refresh, updateTrip, error, setError } = useApp();
   const [create, setCreate] = useState(false),
     [join, setJoin] = useState(false),
     [busy, setBusy] = useState(false),
@@ -35,7 +35,7 @@ export default function Home() {
       if (user) refresh().catch((e) => setError((e as Error).message));
     }, [user, refresh, setError]),
   );
-  if (!ready)
+  if (!ready || signingIn)
     return (
       <Page>
         <ActivityIndicator color={C.accent} style={{ flex: 1 }} />

@@ -1,3 +1,12 @@
+# SplitBill 1.3.2 — Google sign-in return
+
+- Fix competing Google return handlers that could reopen the sign-in flow.
+- Keep Android sign-in in the app task, avoiding a separate browser task in Back navigation.
+- Recover delayed callbacks and sign-ins interrupted by an app restart.
+- Show progress while completing sign-in and retain successful authentication if loading groups temporarily fails.
+
+43 tests, TypeScript and lint pass. Production build 10 is being prepared; physical-phone sign-in and Back navigation remain unverified.
+
 # SplitBill 1.3.1 — Google Play internal testing
 
 - Choose an expense date when adding a bill, or correct the date while editing it.
