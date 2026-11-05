@@ -4,7 +4,7 @@ Updated 5 November 2026.
 
 - Developer: Divyansh007, developerg675@gmail.com. Existing developer account retained.
 - App: SplitBill, `com.divyansh.splitly`; Play app ID `4975475007444706136`.
-- EAS: `@meridian-max/splitly`; current internal build is 1.3.2/code 10. Candidate 1.3.3/code 11 is being rebuilt to include extended demo access and protection against cloud writes crossing into local mode. Superseded incomplete builds were canceled. The verified build and source commit will be recorded after completion.
+- EAS: `@meridian-max/splitly`; current internal build is 1.3.2/code 10. Candidate 1.3.3/code 11 includes extended demo access, normal-format sample QR codes and protection against cloud writes crossing into local mode. Superseded builds were canceled before publication. Signed-bundle verification and Play upload are pending.
 - Internal test: Active; release `1.3.2 (10) · Google sign-in fix`; developer email is the only selected tester. The unrelated Rishikesh tester list was not selected or changed.
 - Install invitation: <https://play.google.com/apps/internaltest/4701212314015548936>. Sign in with a selected email and accept the invitation. Propagation can take time. The temporary unreviewed package name is expected before app review.
 - Public production: not available. Google requires a closed-test release, 12 testers opted in continuously for 14 days, then an application for production access.

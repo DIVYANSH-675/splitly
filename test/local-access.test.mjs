@@ -144,6 +144,8 @@ test('all API/download entry points fail closed in local mode and preserve the r
 test('demo supports isolated file uploads, profile photos, username invitations and member claiming with original balances', async () => {
   const demo = createLocalSession('demo'), trip = demo.snapshot().trips[0];
   const bytes = demoReport(trip, 'pdf');
+  a.match(trip.code, /^[A-F0-9]{12}$/);
+  a.equal((await demo.request('/join/preview', 'POST', { code: trip.code })).joined, true);
   a.deepEqual(decodeDemoFile(encodeDemoFile(bytes)), bytes);
   const large = new Uint8Array(2_000_000); large[0] = 255; large[large.length - 1] = 7;
   a.deepEqual(decodeDemoFile(encodeDemoFile(large)), large);
@@ -164,6 +166,10 @@ test('demo supports isolated file uploads, profile photos, username invitations 
   a.equal(claimed.me, guest.id); a.equal(claimed.members.find(m => m.id === guest.id).name, 'Jigyasu Patel');
   a.equal(claimed.balances.find(m => m.id === guest.id).balance, 450000);
   a.equal(claimed.expenses[0].createdBy, 'sample-host');
+  a.match(claimed.code, /^[A-F0-9]{12}$/);
+  a.equal((await demo.request('/join/preview', 'POST', { code: claimed.code })).joined, true);
+  a.equal((await demo.request('/join', 'POST', { code: 'DEMOCLAIM' })).id, claimed.id);
+  a.equal(demo.snapshot().trips.length, 2);
   await a.rejects(() => demo.request(`/trips/${claimed.id}/expenses/${claimed.expenses[0].id}`, 'PATCH', bill(claimed)), /author or group admin/);
   const mine = await demo.request(`/trips/${claimed.id}/expenses`, 'POST', bill(claimed));
   await demo.request(`/trips/${claimed.id}/expenses/${mine.expenses.at(-1).id}`, 'PATCH', { ...bill(claimed), title: 'Own bill edited' });
@@ -172,7 +178,9 @@ test('demo supports isolated file uploads, profile photos, username invitations 
   await a.rejects(() => demo.request('/join', 'POST', { code: 'REALCODE' }), /sample invitation/);
   const lookup = await demo.request('/trips', 'POST', { name: 'Lookup', currency: 'INR', guests: ['@priya'] });
   a.equal(lookup.members[1].name, 'Priya'); a.equal(lookup.members[1].linked, true);
+  a.match(lookup.code, /^[A-F0-9]{12}$/);
   await a.rejects(() => demo.request('/trips', 'POST', { name: 'Real lookup', currency: 'INR', guests: ['@realuser'] }), /sample username/);
+  await a.rejects(() => demo.request('/trips', 'POST', { name: 'Invalid lookup', currency: 'INR', guests: ['@__proto__'] }), /sample username/);
   a.equal(createLocalSession('demo').snapshot().user.photo, '');
   await a.rejects(() => createLocalSession('demo').request(`/trips/${trip.id}/attachments/${file.id}`), /not found/);
 });

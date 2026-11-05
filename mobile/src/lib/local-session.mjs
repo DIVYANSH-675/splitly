@@ -21,10 +21,17 @@ export function createLocalSession(mode, saved = null, persist = async () => {})
   }
   const listeners = new Set();
   const files = new Map(), invitations = new Map();
+  const sampleCodes = { DEMOSAMPLE: 'D3A01234ABCD', DEMOCLAIM: 'D3A0C1A10001', DEMONEW: 'D3A0C1A10002' };
+  const inviteCode = () => {
+    let value;
+    do { value = `D${Array.from({ length: 11 }, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase()}`; }
+    while (Object.values(sampleCodes).includes(value) || state.trips.some(t => t.code === value));
+    return value;
+  };
   const roster = { aarav: 'Aarav', priya: 'Priya', rohan: 'Rohan' };
   const demoPeople = trip => {
     for (const person of trip.members) if (person.username && person.id !== trip.me) {
-      check(roster[person.username], 'Use a sample username: @aarav, @priya or @rohan.');
+      check(Object.hasOwn(roster, person.username), 'Use a sample username: @aarav, @priya or @rohan.');
       person.name = roster[person.username]; person.linked = true;
     }
   };
@@ -78,7 +85,7 @@ export function createLocalSession(mode, saved = null, persist = async () => {})
     data.trips = projectAction(data.trips, { path, method, body: payload, createdAt: at }, data.user);
     const trip = data.trips.find(t => t.id === (path === '/trips' ? payload.id : id));
     if (!trip) return { ok: true };
-    trip.code = mode === 'demo' ? old?.code || `D${trip.id.replace(/\W/g, '').slice(-10).toUpperCase()}` : '';
+    trip.code = mode === 'demo' ? old?.code || inviteCode() : '';
     if (mode === 'demo') demoPeople(trip);
     trip.version = (old?.version || 0) + 1;
     trip.updatedAt = at;
@@ -95,17 +102,18 @@ export function createLocalSession(mode, saved = null, persist = async () => {})
     for (const [title, amount, category, payer] of [['Riverside stay', '7200', 'Stay', 0], ['Dinner by the river', '2400', 'Food & drinks', 2], ['Taxi to the hills', '1200', 'Travel', 1]]) {
       action(state, `/trips/${trip.id}/expenses`, 'POST', { title, amount, category, currency: 'INR', rate: 1, date: day, note: '', mode: 'equal', shares: trip.members.map(m => ({ memberId: m.id, value: '0' })), payers: [{ memberId: trip.members[payer].id, amount }] });
     }
-    const sample = state.trips[0]; sample.code = 'DEMOSAMPLE';
+    const sample = state.trips[0]; sample.code = sampleCodes.DEMOSAMPLE;
     const receipt = { id: 'sample_receipt_0001', name: 'sample-ledger.pdf', mime: 'application/pdf', data: encodeDemoFile(demoReport(sample, 'pdf')) };
     files.set(`${sample.id}:${receipt.id}`, { meta: sampleFile(receipt), data: receipt.data });
     sample.expenses[0].attachments = [sampleFile(receipt)];
     for (const code of ['DEMOCLAIM', 'DEMONEW']) {
       const invited = copy(sample); invited.id = `sample-${code}`; invited.name = code === 'DEMOCLAIM' ? 'Sample invitation · claim a name' : 'Sample invitation · join as new';
-      invited.code = code; invited.me = ''; invited.ownerId = 'sample-host'; invited.isOwner = false;
+      invited.code = sampleCodes[code]; invited.me = ''; invited.ownerId = 'sample-host'; invited.isOwner = false;
       invited.members[0].name = 'Jigyasu'; invited.members[0].linked = false;
       invited.members[1].linked = true;
       invited.expenses.forEach(e => { e.createdBy = 'sample-host'; e.attachments = []; });
-      invitations.set(code, invited);
+      invited.activity.forEach(e => { e.user = 'Aarav'; e.userId = 'sample-host'; });
+      invitations.set(invited.code, invited);
     }
   }
   return {
@@ -135,13 +143,14 @@ export function createLocalSession(mode, saved = null, persist = async () => {})
           else check(!body.photo || body.photo.length <= 128_000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(body.photo), 'Choose a small JPEG profile photo.');
           if (mode === 'child') check(!body.username, 'Online usernames are not used in local mode.');
           else check(!body.username || /^[a-z0-9_]{3,24}$/.test(body.username), 'Use 3–24 lowercase letters, numbers or underscores.');
-          if (mode === 'demo') check(!roster[body.username], 'That sample username is already taken.');
+          if (mode === 'demo') check(!Object.hasOwn(roster, body.username), 'That sample username is already taken.');
           next.user = { ...next.user, name: body.name.trim(), photo: mode === 'demo' ? body.photo ?? next.user.photo : '', username: mode === 'demo' ? body.username || next.user.username : '' };
           for (const t of next.trips) { const m = t.members.find(m => m.id === t.me); if (m) { m.name = next.user.name; m.photo = next.user.photo; } decorate(t); }
           result = next.user;
         } else if (path === '/join/preview' || path === '/join') {
           check(mode === 'demo', 'Online joining is not available in local mode.');
-          const code = String(body.code || '').toUpperCase();
+          const input = String(body.code || '').toUpperCase();
+          const code = sampleCodes[input] || input;
           const joined = next.trips.find(t => t.code === code);
           const trip = joined || copy(invitations.get(code) || null);
           check(trip, 'Use DEMOCLAIM or DEMONEW for a sample invitation. Real groups need Google sign-in.');
