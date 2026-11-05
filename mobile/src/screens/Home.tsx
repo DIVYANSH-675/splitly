@@ -25,7 +25,7 @@ import { NotificationBell } from '../components/Notifications';
 import { SyncStatus } from '../components/PendingBills';
 import Auth from './Auth';
 export default function Home() {
-  const { user, ready, signingIn, trips, refresh, updateTrip, error, setError } = useApp();
+  const { user, ready, signingIn, trips, refresh, updateTrip, error, setError, mode } = useApp();
   const [create, setCreate] = useState(false),
     [join, setJoin] = useState(false),
     [busy, setBusy] = useState(false),
@@ -162,9 +162,9 @@ export default function Home() {
           <View style={{ flex: 1 }}>
             <Btn title="New group" icon="add" onPress={() => setCreate(true)} />
           </View>
-          <View style={{ flex: 1 }}>
+          {mode !== 'child' && <View style={{ flex: 1 }}>
             <Btn title="Join group" icon="link-outline" secondary onPress={() => setJoin(true)} />
-          </View>
+          </View>}
         </View>
         <View style={[s.between, { marginTop: 4 }]}>
           <Text style={s.h3}>Your groups</Text>
@@ -222,7 +222,7 @@ export default function Home() {
       </ScrollView>
       <BottomNav active="Groups" />
       {create && <GroupForm onClose={() => setCreate(false)} />}
-      {join && (
+      {join && mode !== 'child' && (
         <JoinGroup
           onClose={() => setJoin(false)}
           onJoined={(t) => {

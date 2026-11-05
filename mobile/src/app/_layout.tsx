@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { AppProvider } from '../lib/context';
+import { LocalNotice } from '../components/LocalNotice';
 export default function Layout() {
   const [loaded, error] = useFonts({
     ManropeRegular: require('@expo-google-fonts/manrope/400Regular/Manrope_400Regular.ttf'),
@@ -29,9 +30,12 @@ export default function Layout() {
     <SafeAreaProvider>
       <AppProvider>
         <StatusBar style="dark" />
+        <View style={{ flex: 1 }}>
+        <LocalNotice />
         <Stack
           screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F6F6EF' } }}
         />
+        </View>
       </AppProvider>
     </SafeAreaProvider>
   );

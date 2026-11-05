@@ -13,7 +13,7 @@ import { version } from '../../package.json';
 import { GoogleSignIn } from '../components/GoogleSignIn';
 import { SupportLinks } from '../components/SupportLinks';
 export default function Profile() {
-  const { user, setUser, signOut, mutate } = useApp();
+  const { user, setUser, signOut, mutate, mode, manageAge } = useApp();
   const [name, setName] = useState<string | null>(null),
     [username, setUsername] = useState<string | null>(null),
     [photo, setPhoto] = useState<string | null>(null),
@@ -32,7 +32,7 @@ export default function Profile() {
         <View style={{ alignItems: 'center', paddingVertical: 10, gap: 12 }}>
           <Text style={[s.eyebrow, { marginBottom: 9 }]}>YOUR LITTLE CORNER</Text>
           <Avatar photo={photo ?? user.photo} name={user.name} size={82} />
-          <Btn
+          {mode === 'online' && <Btn
             title="Change profile photo"
             secondary
             onPress={async () => {
@@ -58,8 +58,8 @@ export default function Profile() {
                 setError((e as Error).message);
               }
             }}
-          />
-          {Boolean(photo ?? user.photo) && (
+          />}
+          {mode === 'online' && Boolean(photo ?? user.photo) && (
             <Btn title="Remove photo" secondary onPress={() => setPhoto('')} />
           )}
           <Text style={s.h2}>{user.name}</Text>
@@ -76,7 +76,7 @@ export default function Profile() {
             maxLength={60}
             placeholder="Your name"
           />
-          <Field
+          {mode !== 'child' && <Field
             label="Unique username"
             value={username ?? user.username ?? ''}
             onChangeText={(value) => { setUsername(value); setSaved(false); }}
@@ -84,7 +84,7 @@ export default function Profile() {
             autoCorrect={false}
             maxLength={24}
             placeholder="your_username"
-          />
+          />}
           <ErrorBox text={error} />
           <Btn
             title={saved ? 'Looking good. Saved ✓' : 'Save profile'}
@@ -110,8 +110,8 @@ export default function Profile() {
           />
         </View>
         <Text style={s.eyebrow}>SETTINGS</Text>
-        <GoogleSignIn link disabled={busy}/>
-        {user.guest && !user.googleEmail && (
+        {mode === 'online' && <GoogleSignIn link disabled={busy}/>}
+        {mode === 'online' && user.guest && !user.googleEmail && (
           <View style={[s.row, { alignItems: 'flex-start', gap: 13, paddingHorizontal: 4 }]}>
             <Icon name="phone-portrait-outline" size={20} color={C.muted} />
             <View style={{ flex: 1, gap: 5 }}>
@@ -124,7 +124,7 @@ export default function Profile() {
             </View>
           </View>
         )}
-        {Boolean(user.googleEmail) && (
+        {mode === 'online' && Boolean(user.googleEmail) && (
           <Btn
             title="Sign out"
             secondary
@@ -142,7 +142,8 @@ export default function Profile() {
             }}
           />
         )}
-        <SupportLinks />
+        <Btn title={mode === 'child' ? 'Parent settings' : 'Device age settings'} secondary onPress={manageAge} />
+        {mode !== 'child' ? <SupportLinks /> : <Text style={s.muted}>Your groups, names and bills are saved only on this device. There is no Google account, photo upload, Internet sharing or cloud backup. Uninstalling or clearing app data removes the local ledger. Parent settings need the PIN created during setup.</Text>}
         <View
           style={{ alignItems: 'center', transform: [{ scale: 0.7 }], height: 128, marginTop: 5 }}
         >

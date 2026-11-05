@@ -2,6 +2,9 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import { getLocalSession } from './local-gateway.mjs';
+import { demoReport } from './demo-report.mjs';
+import type { Trip } from './types';
 
 const configured = process.env.EXPO_PUBLIC_API_URL;
 const host =
@@ -14,6 +17,7 @@ export let baseUrl = configured || (Platform.OS === 'web' ? `http://${host}:4310
 let token = '';
 export const sessionCacheKey = () => `splitly.cache:${baseUrl}:${token.slice(-16)}`;
 async function timedFetch(url: string, options: RequestInit = {}, timeout = 18000) {
+  if (getLocalSession()) throw new Error('Internet requests are disabled in local mode.');
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
@@ -61,6 +65,8 @@ export async function setToken(value: string) {
   }
 }
 export async function api<T = unknown>(path: string, method = 'GET', body?: unknown): Promise<T> {
+  const local = getLocalSession();
+  if (local) return await local.request(path, method, body as Record<string, unknown>) as T;
   let response: Response;
   try {
     response = await timedFetch(`${baseUrl}/api${path}`, {
@@ -80,6 +86,11 @@ export async function api<T = unknown>(path: string, method = 'GET', body?: unkn
 }
 
 export async function exportBytes(tripId: string, format: 'pdf' | 'xlsx', analytics = false) {
+  const local = getLocalSession();
+  if (local) {
+    if (local.mode !== 'demo') throw new Error('Report sharing is unavailable in on-device child mode.');
+    return demoReport(await local.request(`/trips/${tripId}`) as Trip, format, analytics);
+  }
   const response = await timedFetch(
     `${baseUrl}/api/trips/${tripId}/export/${format}?analytics=${analytics ? 1 : 0}`,
     {
@@ -93,6 +104,7 @@ export async function exportBytes(tripId: string, format: 'pdf' | 'xlsx', analyt
 }
 
 export async function attachmentBytes(tripId: string, id: string) {
+  if (getLocalSession()) throw new Error('Online attachments are unavailable in local mode.');
   const response = await timedFetch(`${baseUrl}/api/trips/${tripId}/attachments/${id}`, { headers: {Authorization: `Bearer ${token}`} });
   if (!response.ok) throw new ApiError((await response.json()).error || 'Could not open attachment', response.status);
   return new Uint8Array(await response.arrayBuffer());

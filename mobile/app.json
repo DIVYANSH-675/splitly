@@ -2,7 +2,7 @@
   "expo": {
     "name": "SplitBill",
     "slug": "splitly",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -24,7 +24,8 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
-      "versionCode": 10
+      "versionCode": 11,
+      "allowBackup": false
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -35,7 +36,12 @@
       "expo-router",
       "expo-web-browser",
       "expo-font",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": false
+        }
+      ],
       "expo-sharing",
       [
         "expo-build-properties",
@@ -64,7 +70,8 @@
           "cameraPermission": "Scan a group QR code."
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "./plugins/with-local-privacy"
     ],
     "scheme": "splitly",
     "experiments": {

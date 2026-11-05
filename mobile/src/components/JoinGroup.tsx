@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { View } from 'react-native';
+import React, { lazy, Suspense, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { Text } from './Typography';
-import { GroupScanner } from './GroupScanner';
 import { api } from '../lib/api';
 import { useApp } from '../lib/context';
 import { type Trip } from '../lib/types';
 import { Btn, ErrorBox, Field, Sheet, s } from './ui';
 import { PersonChoice } from './PeoplePicker';
+// Do not initialize the camera/scanner module in on-device child mode.
+const GroupScanner = lazy(() => import('./GroupScanner').then(module => ({ default: module.GroupScanner })));
 export function JoinGroup({
   onClose,
   onJoined,
@@ -146,13 +147,13 @@ export function JoinGroup({
         )}
       </Sheet>
       {scanning && (
-        <GroupScanner
+        <Suspense fallback={<ActivityIndicator />}><GroupScanner
           onClose={() => setScanning(false)}
           onCode={(value) => {
             setCode(value);
             setScanning(false);
           }}
-        />
+        /></Suspense>
       )}
     </>
   );

@@ -1,3 +1,13 @@
+# SplitBill 1.3.3 — Local access and reviewer demo
+
+- Add a neutral age screen for ages 9–12, 13–15, 16–17 and 18+.
+- Give ages 9–17 a separate persistent on-device ledger, set up by a parent with a six-digit PIN. The parent birth date is checked locally and discarded; the PIN is stored as a salted hash with failed-attempt lockout.
+- Keep younger-user ledgers separate from Google/cloud accounts. Online invitations, camera, profile photos, receipts and external report sharing are unavailable in this mode.
+- Let adults explore, edit, reset and exit a synthetic sample ledger without an account. Demo PDF/XLSX exports are generated locally.
+- Disable Android cloud backup and device transfer of app data. Clearing data or uninstalling loses local-only ledgers.
+
+Build 11 is being prepared for testing. Public release still requires completed app-content declarations, closed testing and Google approval. Native parent setup, SDK traffic, installation and OAuth return require physical-device acceptance.
+
 # SplitBill 1.3.2 — Google sign-in return
 
 - Fix competing Google return handlers that could reopen the sign-in flow.

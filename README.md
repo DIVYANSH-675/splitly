@@ -1,8 +1,10 @@
 # SplitBill
 
-A simple Android app for shared bills. Add a bill or transfer, see everyone’s signed balance, and settle up. Sign in with Google, split bills, and keep the trip simple. No itinerary or subscription.
+A simple Android app for shared bills. Add a bill or transfer, see everyone’s signed balance, and settle up. Adults can sign in with Google; younger users have a separate on-device ledger. Split bills and keep the trip simple. No itinerary or subscription.
 
 ## Android app
+
+**1.3.3 (build 11) is being prepared for testing.** First launch asks for an age range. Ages 9–17 use a parent-configured local ledger with no Google login, online invitations, photos, receipts or shared exports. Ages 18+ can use Google and cloud groups, or explore disposable sample data without an account. The parent PIN guards switching away from younger-user mode. Local data is not uploaded or synced and is lost if app data is cleared or the app is removed. Android cloud backup and device transfer are disabled. This is a local parent control, not identity verification or a claim of legal certification.
 
 **Version 1.3.2 (build 10) is active in Google Play internal testing.** It fixes competing Google sign-in return handlers and Android browser-task navigation. Cold and delayed returns can still recover, progress is shown during session creation, and failed sign-ins show an error. The expense-date picker and privacy/deletion-support links from 1.3.1 are retained. [Join or update through the internal test](https://play.google.com/apps/internaltest/4701212314015548936) with a selected tester email (initially `developerg675@gmail.com`). Play changes can take an hour or occasionally longer to appear. The temporary name `com.divyansh.splitly (unreviewed)` remains until app review is complete. This is not a public production release. Play estimates a 16.8 MB new-install download and a 1.67 MB update; size varies by device. Physical-phone Google return and Back navigation remain unverified. [Current AAB and source archive](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.3.2) are for developers; install through the Play test link.
 
@@ -39,6 +41,10 @@ The app uses the dedicated **SplitBill Supabase project** by default. The Google
 Built-in categories: Food & drinks, Travel, Stay, Activities, Groceries, Fuel, Shopping, Tickets, Rentals, Fees & tips, Health, Bills and Other. Custom categories belong to a group.
 
 ## Offline behavior
+
+Younger-user mode saves groups, bills, transfers, categories and edits directly on the device without signing in or contacting the API. A save succeeds only after durable storage succeeds. These ledgers remain separate from adult accounts. The adult demo uses disposable synthetic data and resets on exit; it must not be used to keep real expenses.
+
+The following describes adult online accounts:
 
 The installed Android bundle starts without the development server. After the initial online Google sign-in, cached groups open offline. Bills, attachments, transfers, custom categories, group creation/renaming, guest member edits, profile changes and confirmed bill/transfer edits/deletions are durably queued before the app acknowledges saving them.
 

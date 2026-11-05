@@ -54,7 +54,7 @@ export default function Group() {
   const { height, width } = useWindowDimensions();
   const compact = height < 760;
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user, ready, trips, pending, mutate, updateTrip, removeTrip } = useApp();
+  const { user, ready, trips, pending, mutate, updateTrip, removeTrip, mode } = useApp();
   const trip = trips.find((t) => t.id === id);
   const [tab, setTab] = useState('Bills'),
     [reportGraph, setReportGraph] = useState(false),
@@ -485,6 +485,7 @@ export default function Group() {
       )}
       {form === 'settings' && <GroupForm trip={trip} onClose={close} />}
       <Sheet title="Group options" visible={form === 'menu'} onClose={close}>
+        {mode === 'child' ? <Text style={s.muted}>This ledger stays on this device. Online invites, receipts and report sharing are unavailable in this mode.</Text> : <>
         <Text style={s.h3}>Take your group with you</Text>
         <Text style={s.muted}>
           Bills, each person’s share, balances and transfers. The PDF excludes notification history.
@@ -519,6 +520,7 @@ export default function Group() {
             }}
           />
         ))}
+        </>}
         <Text style={s.muted}>
           You can edit bills and transfers you added.
           {trip.isOwner ? ' As group admin, you can edit anyone’s entries.' : ''}
@@ -533,7 +535,7 @@ export default function Group() {
                 close();
                 setConfirmation({
                   title: 'Delete group?',
-                  text: 'This permanently deletes this group and its bills, transfers and history for everyone.',
+                  text: mode === 'online' ? 'This permanently deletes this group and its bills, transfers and history for everyone.' : 'This removes the group and its records from this local ledger.',
                   path: '',
                   group: true,
                 });
@@ -543,7 +545,7 @@ export default function Group() {
         )}
       </Sheet>
       <Sheet title="People in this group" visible={form === 'members'} onClose={close}>
-        <View style={s.card}>
+        {mode !== 'child' && <View style={s.card}>
           <Text style={s.label}>Scan to join this group</Text>
           <View
             style={{
@@ -584,7 +586,7 @@ export default function Group() {
               }
             }}
           />
-        </View>
+        </View>}
         {trip.members.map((m, i) => (
           <View style={s.row} key={m.id}>
             <Avatar photo={m.photo} name={m.name} index={i} />
@@ -594,7 +596,7 @@ export default function Group() {
                 {m.id === trip.me ? ' (you)' : ''}
               </Text>
               <Text style={{ fontSize: 10, color: C.muted }}>
-                {m.linked
+                {mode !== 'online' ? 'On this device' : m.linked
                   ? `Connected${m.username ? ` · @${m.username}` : ''}`
                   : m.username
                     ? 'Username invite · waiting to sync'
@@ -638,15 +640,15 @@ export default function Group() {
         }}
       >
         <Field
-          label={memberId ? 'Name' : 'Name or @username'}
+          label={memberId || mode !== 'online' ? 'Name' : 'Name or @username'}
           value={memberName}
           onChangeText={setMemberName}
-          placeholder="Jigyasu or @jigyasu_patel"
+          placeholder={mode === 'online' ? 'Jigyasu or @jigyasu_patel' : 'Family or Friend'}
           maxLength={60}
           editable={!trip.members.find((member) => member.id === memberId)?.linked}
         />
         <Text style={s.muted}>
-          {trip.members.find((member) => member.id === memberId)?.linked
+          {mode !== 'online' ? 'Names are labels on this device. They do not invite or contact anyone. Change your own name in Profile.' : trip.members.find((member) => member.id === memberId)?.linked
             ? 'Connected members use their profile name. They can update it in Profile.'
             : 'Use a name for an unclaimed guest, or @username to add an existing account after syncing.'}
         </Text>

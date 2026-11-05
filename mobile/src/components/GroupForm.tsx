@@ -6,7 +6,7 @@ import { useApp } from '../lib/context';
 import { currencies, type Trip } from '../lib/types';
 import { Btn, Chip, ErrorBox, Field, Sheet, s } from './ui';
 export function GroupForm({ onClose, trip }: { onClose: () => void; trip?: Trip }) {
-  const { user, updateTrip, mutate } = useApp();
+  const { user, updateTrip, mutate, mode } = useApp();
   const [name, setName] = useState(trip?.name || ''),
     [currency, setCurrency] = useState(trip?.currency || 'INR'),
     [showCurrency, setShowCurrency] = useState(false),
@@ -57,14 +57,13 @@ export function GroupForm({ onClose, trip }: { onClose: () => void; trip?: Trip 
       {!trip && (
         <>
           <Field
-            label="Names or @usernames (optional)"
+            label={mode === 'online' ? 'Names or @usernames (optional)' : 'Names on this device (optional)'}
             value={guests}
             onChangeText={setGuests}
-            placeholder="Jigyasu, @aarav_27, Priya"
+            placeholder={mode === 'online' ? 'Jigyasu, @aarav_27, Priya' : 'Family, Friend'}
           />
           <Text style={s.muted}>
-            Separate people with commas. Names create unclaimed guests; @usernames add existing
-            accounts automatically after syncing. Username lookup needs Internet.
+            {mode === 'online' ? 'Separate people with commas. Names create unclaimed guests; @usernames add existing accounts automatically after syncing. Username lookup needs Internet.' : 'Separate names with commas. These labels stay on this device; they do not invite or contact anyone.'}
           </Text>
           <Pressable
             accessibilityRole="button"

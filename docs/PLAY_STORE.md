@@ -10,7 +10,9 @@ Updated 5 November 2026.
 - Public production: not available. Google requires a closed-test release, 12 testers opted in continuously for 14 days, then an application for production access.
 - Saved: privacy policy, no ads, no government affiliation, no health features, expense-ledger financial description, Finance category, public developer contact and store listing.
 - Data safety: all 11 selected data types answered and saved as a draft; target-audience prerequisite prevents final submission.
-- Pending: reusable reviewer Google test login or an owner-approved public demo mode; target audience; IARC Terms of Use approval and the content-rating questionnaire; final Data safety submission; closed test and production review.
+- Pending: build 11 reviewer-demo instructions and target audience; IARC Terms of Use approval and content rating; final Data safety submission; country/tester-list choice; closed testing and production review.
+- Build 11 preparation: owner selected a sample-data reviewer demo and ages 9–12 and older. The client separates ages 9–17 into parent-configured on-device mode and reserves Google/cloud access for adults 18+. Age range, parent PIN record and child ledger are not transmitted by the app. Android backup/device transfer is excluded. Native SDK traffic and the full child flow still need physical-device verification before declaring release readiness.
+- Separate owner answers are pending for IARC legal acceptance, use of the existing tester list versus a new list, and India-only versus worldwide availability. None are inferred from the audience answer.
 - IARC category/contact are prepared using the developer email and All other app types. The separate IARC legal agreement is not accepted while owner confirmation is pending.
 
 ## Assets and disclosures

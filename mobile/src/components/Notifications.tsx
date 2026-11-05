@@ -52,7 +52,7 @@ export function Notifications({
   visible: boolean;
   onClose: () => void;
 }) {
-  const { markRead } = useApp();
+  const { markRead, mode } = useApp();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   useEffect(() => {
     if (visible) markRead(groups);
@@ -66,7 +66,7 @@ export function Notifications({
       <View style={[s.row, {padding:24}]}><IconButton name="arrow-back" label="Back" onPress={onClose} /><Text style={s.h2}>Notifications</Text></View>
       <ScrollView contentContainerStyle={{padding:24, paddingTop:0, gap:20}}>
       <Text style={s.muted}>
-        Who changed what, all in one place. Updates appear while the app is open and connected.
+        {mode === 'online' ? 'Who changed what, all in one place. Updates appear while the app is open and connected.' : 'Who changed what, all in one place. This history stays in your local ledger.'}
       </Text>
       {!events.length && (
         <Empty

@@ -1,11 +1,16 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import { AppState } from 'react-native';
+import { ActivityIndicator, AppState, View } from 'react-native';
 import { api, ApiError, baseUrl, initApi, sessionCacheKey, setToken } from './api';
 import { uploadAttachments } from './attachments';
 import { projectAction, projectActions, operationId } from './offline-actions.mjs';
 import { Outbox } from './outbox.mjs';
+import { AccessShell } from '../components/AccessShell';
+import { Btn, C, ErrorBox, Page } from '../components/ui';
+import { createLocalSession, type LocalSession } from './local-session.mjs';
+import { setLocalSession } from './local-gateway.mjs';
+import { canAccessCloud } from './access-policy.mjs';
 import {
   currencies,
   type PendingAction,
@@ -15,6 +20,10 @@ import {
   type User,
 } from './types';
 type Context = {
+  mode: 'online' | 'demo' | 'child';
+  startDemo: () => void;
+  resetDemo: () => void;
+  manageAge: () => void;
   user: User | null;
   ready: boolean;
   signingIn: boolean;
@@ -46,6 +55,53 @@ type Context = {
 };
 const AppContext = createContext<Context>(null!);
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  return <AccessShell>{(band, manage) => <SessionSwitch key={band} band={band} manage={manage}>{children}</SessionSwitch>}</AccessShell>;
+}
+function SessionSwitch({ band, manage, children }: { band: string; manage: () => void; children: React.ReactNode }) {
+  const [local, setLocal] = useState<LocalSession | null>(null), [error, setError] = useState(''), [retry, setRetry] = useState(0), [generation, setGeneration] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    if (!canAccessCloud(band)) {
+      AsyncStorage.getItem('splitbill.child.ledger.v1').then(raw => {
+        const session = createLocalSession('child', raw ? JSON.parse(raw) : null, value => AsyncStorage.setItem('splitbill.child.ledger.v1', JSON.stringify(value)));
+        if (alive) { setLocalSession(session); setLocal(session); setError(''); }
+      }).catch(e => { if (alive) setError(`Could not open the on-device ledger: ${(e as Error).message}`); });
+    }
+    return () => { alive = false; setLocalSession(null); };
+  }, [band, retry]);
+  const demo = () => { const session = createLocalSession('demo'); setLocalSession(session); setGeneration(v => v + 1); setLocal(session); };
+  const exit = async () => { setLocalSession(null); setLocal(null); };
+  if (!canAccessCloud(band) && !local) return <Page><View style={{ padding: 26, gap: 20 }}>
+    {error ? <><ErrorBox text={error} /><Btn title="Try again" onPress={() => setRetry(v => v + 1)} /><Btn secondary title="Parent settings" onPress={manage} /></> : <ActivityIndicator color={C.accent} />}
+  </View></Page>;
+  if (local) return <LocalProvider key={`${local.mode}:${retry}:${generation}`} session={local} manage={manage} reset={() => { if (local.mode === 'demo') demo(); }} exit={exit}>{children}</LocalProvider>;
+  return <OnlineProvider onDemo={demo} manage={manage}>{children}</OnlineProvider>;
+}
+function LocalProvider({ session, manage, reset, exit, children }: { session: LocalSession; manage: () => void; reset: () => void; exit: () => Promise<void>; children: React.ReactNode }) {
+  const [state, setState] = useState(session.snapshot), [error, setError] = useState(''), [seen, setSeen] = useState<Record<string, string>>({});
+  useEffect(() => session.subscribe(() => setState(session.snapshot())), [session]);
+  const mutate = useCallback(async (path: string, method: string, body: Record<string, unknown> = {}) => await session.request(path, method, body) as Trip | User, [session]);
+  const refresh = useCallback(async () => {}, []); // Mutations publish the authoritative local snapshot.
+  const updateTrip = useCallback(() => {}, []);
+  const markRead = useCallback((groups: Trip[]) => setSeen(prev => {
+    let changed = false;
+    const next = { ...prev };
+    for (const trip of groups) if (trip.activity.length && prev[trip.id] !== trip.activity[0].id) { next[trip.id] = trip.activity[0].id; changed = true; }
+    return changed ? next : prev;
+  }), []);
+  return <AppContext.Provider value={{
+    ...state, mode: session.mode, ready: true, signingIn: false, online: true, pending: [], actions: [], syncing: false, seen, error, setError,
+    startDemo: () => {}, resetDemo: reset, manageAge: manage,
+    completeGoogle: async () => { throw new Error('Google sign-in is unavailable in local mode.'); },
+    signOut: session.mode === 'demo' ? exit : async () => manage(),
+    refresh, mutate, updateTrip, removeTrip: () => {},
+    setUser: () => {}, // Local profile changes are already committed by mutate.
+    addBill: async (tripId, body) => { await mutate(`/trips/${tripId}/expenses`, 'POST', { ...body }); },
+    removePending: async () => {}, retryPending: async () => {}, removeAction: async () => {}, retryActions: async () => {},
+    markRead,
+  }}>{children}</AppContext.Provider>;
+}
+function OnlineProvider({ children, onDemo, manage }: { children: React.ReactNode; onDemo: () => void; manage: () => void }) {
   const [user, setUser] = useState<User | null>(null),
     [ready, setReady] = useState(false),
     [trips, setTrips] = useState<Trip[]>([]),
@@ -333,6 +389,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider
       value={{
+        mode: 'online', startDemo: onDemo, resetDemo: () => {}, manageAge: manage,
         user,
         ready,
         signingIn,

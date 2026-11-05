@@ -33,7 +33,7 @@ export function ExpenseForm({
   onClose: () => void;
   onSaved: (t: Trip) => void;
 }) {
-  const { addBill, mutate } = useApp();
+  const { addBill, mutate, mode: accessMode } = useApp();
   const [attachments, setAttachments] = useState<Attachment[]>(
     expense?.attachments || draft?.body.attachments || [],
   );
@@ -268,7 +268,7 @@ export function ExpenseForm({
           </View>
         )}
       </View>
-      <View style={{ gap: 12 }}>
+      {accessMode === 'online' && <View style={{ gap: 12 }}>
         <Text style={s.label}>Attachments · optional</Text>
         {attachments.map((file) => (
           <View key={file.id} style={s.between}>
@@ -302,11 +302,11 @@ export function ExpenseForm({
         <Text style={s.muted}>
           JPG, PNG, WebP or PDF · up to 2 MB each. Saved on your device until synced.
         </Text>
-      </View>
+      </View>}
       <ErrorBox text={error} />
       {!expense && (
         <Text style={s.muted}>
-          Saved on this device first. Syncs automatically when your server is reachable.
+          {accessMode === 'online' ? 'Saved on this device first. Syncs automatically when your server is reachable.' : accessMode === 'demo' ? 'Sample changes stay in this demo and clear when you exit.' : 'Saved only on this device. No Internet connection or account is used.'}
         </Text>
       )}
       <Btn title="Save bill" busy={busy} onPress={submit} />
