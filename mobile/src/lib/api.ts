@@ -67,7 +67,13 @@ export async function setToken(value: string) {
 }
 export async function api<T = unknown>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const local = getLocalSession();
-  if (local) return await local.request(path, method, body as Record<string, unknown>) as T;
+  if (local) {
+    // A cloud outbox may still be awaiting a file read when device mode changes.
+    // Never acknowledge that old account's queued write against a local ledger.
+    if (body && typeof body === 'object' && 'clientRequestId' in body)
+      throw new Error('Cloud sync is paused while local mode is open. Your queued change is retained.');
+    return await local.request(path, method, body as Record<string, unknown>) as T;
+  }
   let response: Response;
   try {
     response = await timedFetch(`${baseUrl}/api${path}`, {

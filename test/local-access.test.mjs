@@ -10,6 +10,7 @@ import { canAccessCloud, isAdultBirthDate, createParentLock } from '../mobile/sr
 import * as gateway from '../mobile/src/lib/local-gateway.mjs';
 import { demoReport } from '../mobile/src/lib/demo-report.mjs';
 import { decodeDemoFile, encodeDemoFile } from '../mobile/src/lib/demo-assets.mjs';
+import { Outbox } from '../mobile/src/lib/outbox.mjs';
 
 const bill = trip => ({ title: 'Lunch', amount: '120', currency: 'INR', rate: 1, category: 'Food & drinks', date: '2026-11-05', note: '', mode: 'equal', shares: trip.members.map(m => ({ memberId: m.id, value: '0' })), payers: [{ memberId: trip.me, amount: '120' }] });
 
@@ -115,6 +116,11 @@ test('all API/download entry points fail closed in local mode and preserve the r
   const child = createLocalSession('child'); gateway.setLocalSession(child);
   t.after(() => gateway.setLocalSession(null));
   a.equal((await exports.api('/me')).id, 'local-child');
+  const delayed = new Outbox(as, 'test-delayed-cloud-write');
+  await delayed.put({ id: 'cloud-request', path: '/trips', method: 'POST', body: { name: 'Private adult group', currency: 'INR', guests: ['Adult friend'] } });
+  await delayed.flush(item => exports.api(item.path, item.method, { ...item.body, clientRequestId: item.id }), () => a.fail('Cloud write must not be acknowledged locally'));
+  a.equal(child.snapshot().trips.length, 0);
+  a.equal((await delayed.load()).length, 1);
   await a.rejects(() => exports.api('/google/login', 'POST', { code: 'one-use' }));
   await a.rejects(() => exports.exportBytes('id', 'pdf'));
   await a.rejects(() => exports.attachmentBytes('id', 'attachment'));
@@ -130,6 +136,9 @@ test('all API/download entry points fail closed in local mode and preserve the r
   gateway.setLocalSession(null);
   await exports.api('/me');
   a.equal(calls, 1); a.equal(auth, 'Bearer real-private-token');
+  let acknowledged = 0;
+  await delayed.flush(item => exports.api(item.path, item.method, { ...item.body, clientRequestId: item.id }), () => { acknowledged++; });
+  a.equal(acknowledged, 1); a.equal((await delayed.load()).length, 0); a.equal(calls, 2);
 });
 
 test('demo supports isolated file uploads, profile photos, username invitations and member claiming with original balances', async () => {

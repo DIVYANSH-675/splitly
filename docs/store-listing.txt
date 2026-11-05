@@ -1,0 +1,23 @@
+SplitBill keeps shared costs easy to follow. Add a bill or record a transfer, see each person's share, and settle up with clear signed balances.
+
+SHARED BILLS, SIMPLE MATHS
+Create groups, add people, and split equally, by exact amounts, by percentages or by shares. Choose who paid and who took part using the From and To selectors. Correct an expense date, choose a category, or add a category for your group. Transfers change balances without increasing expense totals.
+
+A PRIVATE LOCAL LEDGER FOR YOUNGER USERS
+SplitBill is designed for ages 9 and over. Ages 9–17 use a separate on-device ledger set up by a parent or guardian. A parent PIN protects switching device age settings. Younger-user mode has no Google sign-in, online invitations, camera, profile photos, receipt uploads or external report sharing. Local groups and bills work without Internet and are not uploaded or synced. Clearing app data or uninstalling removes this local ledger; there is no cloud recovery for it.
+
+ADULT GOOGLE AND CLOUD ACCESS
+Adults aged 18 and over can sign in with Google to keep their synced groups across devices. Edit your profile name, short username and optional photo. Add comma-separated names or @usernames, join using a code or QR scan, and claim an unclaimed guest name while keeping its recorded bills and balance. Optional receipts support JPG, PNG, WebP and PDF.
+
+CLEAR BALANCES AND HISTORY
+See money to receive in green with a plus and money owed in red with a minus. Transactions appear under one date heading per day. Activity history shows who changed what and when. Authors edit their own entries; group admins can edit all entries. Category graphs and individual shares stay on the group page.
+
+REPORTS AND OFFLINE SAVING
+Adult cloud groups export PDF ledgers and XLSX workbooks. PDF includes dated transactions, member shares, totals and settlement suggestions, with optional graphs. Adult users first sign in online; cached groups then open offline and saved changes sync while the app is open and connected. Joining an unfamiliar cloud group and exporting cloud-confirmed reports need Internet. Android cloud backup and device transfer of app data are disabled; synced adult accounts recover through Google.
+
+TRY THE SAMPLE DEMO
+Adults can explore without an account using disposable sample data, including local photos, receipt files, sample invitation and member-claim flows, graphs and reports. Demo invitations and uploads are simulated on the device and cannot contact real users or join real groups. Reset or exit to discard demo changes. Use sample files only.
+
+SplitBill records shared costs and transfers. It does not move money or process payments. No ads or subscription.
+
+Support: developerg675@gmail.com
