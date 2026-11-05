@@ -360,6 +360,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         seen,
         setError,
         completeGoogle: async ({code,verifier,link}) => {
+          setError('');
           setSigningIn(true);
           try {
             if (link) {setUser(await api<User>('/google/link','POST',{code,verifier}));return;}
@@ -373,6 +374,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               // Authentication succeeded even if loading groups temporarily fails.
               setError('Signed in. Your groups will load when the connection returns.');
             }
+          } catch (e) {
+            setError((e as Error).message);
+            throw e;
           } finally {
             setSigningIn(false);
           }
