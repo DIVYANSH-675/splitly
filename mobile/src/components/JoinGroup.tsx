@@ -15,7 +15,7 @@ export function JoinGroup({
   onClose: () => void;
   onJoined: (t: Trip) => void;
 }) {
-  const { user } = useApp();
+  const { user, mode } = useApp();
   const [scanning, setScanning] = useState(false);
   const [code, setCode] = useState(''),
     [busy, setBusy] = useState(false),
@@ -31,7 +31,7 @@ export function JoinGroup({
       <Sheet title="Good company is one code away" visible onClose={onClose}>
         {!preview ? (
           <>
-            <Text style={s.body}>Enter the invite code your friend shared with you.</Text>
+            <Text style={s.body}>{mode === 'demo' ? 'Sample invitations: DEMOCLAIM lets you claim an existing name; DEMONEW lets you join as new. Codes and QR scans stay inside this demo and cannot join real groups.' : 'Enter the invite code your friend shared with you.'}</Text>
             <Field
               label="Group invite code"
               value={code}

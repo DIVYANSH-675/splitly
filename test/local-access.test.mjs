@@ -9,6 +9,7 @@ import { createLocalSession } from '../mobile/src/lib/local-session.mjs';
 import { canAccessCloud, isAdultBirthDate, createParentLock } from '../mobile/src/lib/access-policy.mjs';
 import * as gateway from '../mobile/src/lib/local-gateway.mjs';
 import { demoReport } from '../mobile/src/lib/demo-report.mjs';
+import { decodeDemoFile, encodeDemoFile } from '../mobile/src/lib/demo-assets.mjs';
 
 const bill = trip => ({ title: 'Lunch', amount: '120', currency: 'INR', rate: 1, category: 'Food & drinks', date: '2026-11-05', note: '', mode: 'equal', shares: trip.members.map(m => ({ memberId: m.id, value: '0' })), payers: [{ memberId: trip.me, amount: '120' }] });
 
@@ -108,7 +109,7 @@ test('all API/download entry points fail closed in local mode and preserve the r
   const as = { getItem: async key => storage.get(key) || null, setItem: async (key, value) => { storage.set(key, value); }, removeItem: async key => { storage.delete(key); } };
   let calls = 0, auth;
   const exports = {};
-  const modules = { 'react-native': { Platform: { OS: 'web' } }, 'expo-constants': {}, '@react-native-async-storage/async-storage': as, 'expo-secure-store': {}, './local-gateway.mjs': gateway, './demo-report.mjs': { demoReport } };
+  const modules = { 'react-native': { Platform: { OS: 'web' } }, 'expo-constants': {}, '@react-native-async-storage/async-storage': as, 'expo-secure-store': {}, './local-gateway.mjs': gateway, './demo-report.mjs': { demoReport }, './demo-assets.mjs': { decodeDemoFile } };
   vm.runInNewContext(code, { exports, require: name => { if (!(name in modules)) throw new Error(name); return modules[name]; }, process: { env: {} }, window: { location: { hostname: 'test.local' } }, AbortController, setTimeout, clearTimeout, fetch: async (url, options) => { calls++; auth = options.headers.Authorization; return Response.json({ name: 'Real parent' }); } });
   await exports.initApi();
   const child = createLocalSession('child'); gateway.setLocalSession(child);
@@ -122,11 +123,49 @@ test('all API/download entry points fail closed in local mode and preserve the r
   const demo = createLocalSession('demo'); gateway.setLocalSession(demo);
   const pdf = await exports.exportBytes(demo.snapshot().trips[0].id, 'pdf');
   a.equal(Buffer.from(pdf).subarray(0, 8).toString(), '%PDF-1.4');
+  const sample = demo.snapshot().trips[0];
+  a.equal(Buffer.from(await exports.attachmentBytes(sample.id, sample.expenses[0].attachments[0].id)).subarray(0, 8).toString(), '%PDF-1.4');
   a.equal(calls, 0);
   a.equal(storage.get('memogo.token'), 'real-private-token');
   gateway.setLocalSession(null);
   await exports.api('/me');
   a.equal(calls, 1); a.equal(auth, 'Bearer real-private-token');
+});
+
+test('demo supports isolated file uploads, profile photos, username invitations and member claiming with original balances', async () => {
+  const demo = createLocalSession('demo'), trip = demo.snapshot().trips[0];
+  const bytes = demoReport(trip, 'pdf');
+  a.deepEqual(decodeDemoFile(encodeDemoFile(bytes)), bytes);
+  const large = new Uint8Array(2_000_000); large[0] = 255; large[large.length - 1] = 7;
+  a.deepEqual(decodeDemoFile(encodeDemoFile(large)), large);
+  a.throws(() => decodeDemoFile('AAAA==='), /Invalid/);
+  const file = await demo.request(`/trips/${trip.id}/attachments`, 'POST', { id: 'demo_attachment_0002', name: 'receipt.pdf', mime: 'application/pdf', data: encodeDemoFile(bytes) });
+  const edited = await demo.request(`/trips/${trip.id}/expenses/${trip.expenses[0].id}`, 'PATCH', { ...bill(trip), attachments: [file] });
+  a.equal(edited.expenses.find(e => e.id === trip.expenses[0].id).attachments[0].name, 'receipt.pdf');
+  a.equal((await demo.request(`/trips/${trip.id}/attachments/${file.id}`)).data, encodeDemoFile(bytes));
+  await a.rejects(() => demo.request(`/trips/${trip.id}/attachments`, 'POST', { id: 'demo_attachment_0003', name: 'bad.png', mime: 'image/png', data: encodeDemoFile(bytes) }), /matching file content/);
+  await a.rejects(() => demo.request('/me', 'PATCH', { name: 'Alex', photo: 'https://outside.test/image.jpg' }), /JPEG/);
+  const photo = 'data:image/jpeg;base64,/9j/2Q==';
+  await demo.request('/me', 'PATCH', { name: 'Jigyasu Patel', username: 'jigy4821', photo });
+  a.equal(demo.snapshot().user.photo, photo);
+  const preview = await demo.request('/join/preview', 'POST', { code: 'DEMOCLAIM' });
+  const guest = preview.guests.find(m => m.name === 'Jigyasu');
+  a.ok(guest); a.equal(preview.joined, false);
+  const claimed = await demo.request('/join', 'POST', { code: 'DEMOCLAIM', memberId: guest.id });
+  a.equal(claimed.me, guest.id); a.equal(claimed.members.find(m => m.id === guest.id).name, 'Jigyasu Patel');
+  a.equal(claimed.balances.find(m => m.id === guest.id).balance, 450000);
+  a.equal(claimed.expenses[0].createdBy, 'sample-host');
+  await a.rejects(() => demo.request(`/trips/${claimed.id}/expenses/${claimed.expenses[0].id}`, 'PATCH', bill(claimed)), /author or group admin/);
+  const mine = await demo.request(`/trips/${claimed.id}/expenses`, 'POST', bill(claimed));
+  await demo.request(`/trips/${claimed.id}/expenses/${mine.expenses.at(-1).id}`, 'PATCH', { ...bill(claimed), title: 'Own bill edited' });
+  const joined = await demo.request('/join', 'POST', { code: 'DEMONEW' });
+  a.equal(joined.members.length, 5); a.equal(joined.balances.find(m => m.id === joined.me).balance, 0);
+  await a.rejects(() => demo.request('/join', 'POST', { code: 'REALCODE' }), /sample invitation/);
+  const lookup = await demo.request('/trips', 'POST', { name: 'Lookup', currency: 'INR', guests: ['@priya'] });
+  a.equal(lookup.members[1].name, 'Priya'); a.equal(lookup.members[1].linked, true);
+  await a.rejects(() => demo.request('/trips', 'POST', { name: 'Real lookup', currency: 'INR', guests: ['@realuser'] }), /sample username/);
+  a.equal(createLocalSession('demo').snapshot().user.photo, '');
+  await a.rejects(() => createLocalSession('demo').request(`/trips/${trip.id}/attachments/${file.id}`), /not found/);
 });
 
 test('sample PDF and XLSX reconcile current edits, numeric shares and literal spreadsheet labels', async () => {

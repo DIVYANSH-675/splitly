@@ -4,12 +4,13 @@ import * as Sharing from 'expo-sharing';
 import { api, attachmentBytes } from './api';
 import type { Attachment } from './types';
 const types = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-export async function pickAttachment(): Promise<Attachment | null> {
+export async function pickAttachment(transient = false): Promise<Attachment | null> {
   const result = await DocumentPicker.getDocumentAsync({ type: types, copyToCacheDirectory: true });
   if (result.canceled) return null;
   const asset = result.assets[0];
   if (!asset.size || asset.size > 2_000_000) throw new Error('Choose a file under 2 MB.');
   const id = `file_${Date.now()}_${Math.random().toString(36).slice(2, 14)}`;
+  if (transient) return { id, name: asset.name, mime: asset.mimeType || '', size: asset.size, data: await new File(asset.uri).base64() };
   const dir = new Directory(Paths.document, 'bill-attachments');
   dir.create({ intermediates: true, idempotent: true });
   const file = new File(dir, id);
@@ -19,7 +20,7 @@ export async function pickAttachment(): Promise<Attachment | null> {
 export async function uploadAttachments(tripId: string, files: Attachment[] = []) {
   const saved: Attachment[] = [];
   for (const file of files) {
-    if (!file.localUri) {
+    if (!file.localUri && !file.data) {
       saved.push(file);
       continue;
     }
@@ -28,7 +29,7 @@ export async function uploadAttachments(tripId: string, files: Attachment[] = []
         id: file.id,
         name: file.name,
         mime: file.mime,
-        data: await new File(file.localUri).base64(),
+        data: file.data || await new File(file.localUri!).base64(),
       }),
     );
   }

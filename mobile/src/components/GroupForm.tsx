@@ -57,13 +57,13 @@ export function GroupForm({ onClose, trip }: { onClose: () => void; trip?: Trip 
       {!trip && (
         <>
           <Field
-            label={mode === 'online' ? 'Names or @usernames (optional)' : 'Names on this device (optional)'}
+            label={mode !== 'child' ? 'Names or @usernames (optional)' : 'Names on this device (optional)'}
             value={guests}
             onChangeText={setGuests}
-            placeholder={mode === 'online' ? 'Jigyasu, @aarav_27, Priya' : 'Family, Friend'}
+            placeholder={mode === 'online' ? 'Jigyasu, @aarav_27, Priya' : mode === 'demo' ? 'Jigyasu, @aarav, Priya' : 'Family, Friend'}
           />
           <Text style={s.muted}>
-            {mode === 'online' ? 'Separate people with commas. Names create unclaimed guests; @usernames add existing accounts automatically after syncing. Username lookup needs Internet.' : 'Separate names with commas. These labels stay on this device; they do not invite or contact anyone.'}
+            {mode === 'online' ? 'Separate people with commas. Names create unclaimed guests; @usernames add existing accounts automatically after syncing. Username lookup needs Internet.' : mode === 'demo' ? 'Use comma-separated names or sample usernames @aarav, @priya and @rohan. Sample accounts are simulated on this device; nobody is contacted.' : 'Separate names with commas. These labels stay on this device; they do not invite or contact anyone.'}
           </Text>
           <Pressable
             accessibilityRole="button"

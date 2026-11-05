@@ -31,7 +31,7 @@ async function stored(id: string, value?: Blob): Promise<Blob> {
     db.close();
   }
 }
-export async function pickAttachment(): Promise<Attachment | null> {
+export async function pickAttachment(transient = false): Promise<Attachment | null> {
   const result = await DocumentPicker.getDocumentAsync({
     type: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
     base64: false,
@@ -41,22 +41,31 @@ export async function pickAttachment(): Promise<Attachment | null> {
   const blob = asset.file || (await (await fetch(asset.uri)).blob());
   if (!blob.size || blob.size > 2_000_000) throw new Error('Choose a file under 2 MB.');
   const id = `file_${Date.now()}_${Math.random().toString(36).slice(2, 14)}`;
+  if (transient) {
+    const data = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1]);
+      reader.onerror = () => reject(new Error('Could not read the sample file.'));
+      reader.readAsDataURL(blob);
+    });
+    return { id, name: asset.name, mime: blob.type, size: blob.size, data };
+  }
   await stored(id, blob);
   return { id, name: asset.name, mime: blob.type, size: blob.size, localUri: `local:${id}` };
 }
 export async function uploadAttachments(tripId: string, files: Attachment[] = []) {
   const saved: Attachment[] = [];
   for (const file of files) {
-    if (!file.localUri) {
+    if (!file.localUri && !file.data) {
       saved.push(file);
       continue;
     }
-    const blob = await stored(file.id);
-    const data = await new Promise<string>((resolve, reject) => {
+    const blob = file.data ? null : await stored(file.id);
+    const data = file.data || await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result).split(',')[1]);
       reader.onerror = () => reject(new Error('Could not read the saved file.'));
-      reader.readAsDataURL(blob);
+      reader.readAsDataURL(blob!);
     });
     saved.push(
       await api<Attachment>(`/trips/${tripId}/attachments`, 'POST', {

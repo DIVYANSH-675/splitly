@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { getLocalSession } from './local-gateway.mjs';
 import { demoReport } from './demo-report.mjs';
+import { decodeDemoFile } from './demo-assets.mjs';
 import type { Trip } from './types';
 
 const configured = process.env.EXPO_PUBLIC_API_URL;
@@ -104,7 +105,12 @@ export async function exportBytes(tripId: string, format: 'pdf' | 'xlsx', analyt
 }
 
 export async function attachmentBytes(tripId: string, id: string) {
-  if (getLocalSession()) throw new Error('Online attachments are unavailable in local mode.');
+  const local = getLocalSession();
+  if (local) {
+    if (local.mode !== 'demo') throw new Error('Online attachments are unavailable in local mode.');
+    const file = await local.request(`/trips/${tripId}/attachments/${id}`) as { data: string };
+    return decodeDemoFile(file.data);
+  }
   const response = await timedFetch(`${baseUrl}/api/trips/${tripId}/attachments/${id}`, { headers: {Authorization: `Bearer ${token}`} });
   if (!response.ok) throw new ApiError((await response.json()).error || 'Could not open attachment', response.status);
   return new Uint8Array(await response.arrayBuffer());

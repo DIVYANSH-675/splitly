@@ -264,11 +264,11 @@ export function ExpenseForm({
                 }
               }}
             />
-            <Text style={s.muted}>Available to everyone in this group after syncing.</Text>
+            <Text style={s.muted}>{accessMode === 'online' ? 'Available to everyone in this group after syncing.' : 'Saved in this local group.'}</Text>
           </View>
         )}
       </View>
-      {accessMode === 'online' && <View style={{ gap: 12 }}>
+      {accessMode !== 'child' && <View style={{ gap: 12 }}>
         <Text style={s.label}>Attachments · optional</Text>
         {attachments.map((file) => (
           <View key={file.id} style={s.between}>
@@ -291,7 +291,7 @@ export function ExpenseForm({
             secondary
             onPress={async () => {
               try {
-                const file = await pickAttachment();
+                const file = await pickAttachment(accessMode === 'demo');
                 if (file) setAttachments((prev) => [...prev, file].slice(0, 3));
               } catch (e) {
                 setError((e as Error).message);
@@ -300,7 +300,7 @@ export function ExpenseForm({
           />
         )}
         <Text style={s.muted}>
-          JPG, PNG, WebP or PDF · up to 2 MB each. Saved on your device until synced.
+          {accessMode === 'demo' ? 'JPG, PNG, WebP or PDF · up to 2 MB each. Kept in this demo; never uploaded. Use sample files only.' : 'JPG, PNG, WebP or PDF · up to 2 MB each. Saved on your device until synced.'}
         </Text>
       </View>}
       <ErrorBox text={error} />

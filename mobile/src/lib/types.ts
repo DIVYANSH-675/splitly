@@ -1,4 +1,4 @@
-export type Attachment = { id: string; name: string; mime: string; size: number; localUri?: string };
+export type Attachment = { id: string; name: string; mime: string; size: number; localUri?: string; data?: string };
 export type User = { googleEmail?: string; username?: string; photo?: string; id: string; name: string; email: string; guest: boolean };
 export type Member = { username?: string; photo?: string; id: string; name: string; linked: boolean };
 export type Expense = {

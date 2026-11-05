@@ -80,7 +80,12 @@ function SessionSwitch({ band, manage, children }: { band: string; manage: () =>
 function LocalProvider({ session, manage, reset, exit, children }: { session: LocalSession; manage: () => void; reset: () => void; exit: () => Promise<void>; children: React.ReactNode }) {
   const [state, setState] = useState(session.snapshot), [error, setError] = useState(''), [seen, setSeen] = useState<Record<string, string>>({});
   useEffect(() => session.subscribe(() => setState(session.snapshot())), [session]);
-  const mutate = useCallback(async (path: string, method: string, body: Record<string, unknown> = {}) => await session.request(path, method, body) as Trip | User, [session]);
+  const mutate = useCallback(async (path: string, method: string, body: Record<string, unknown> = {}) => {
+    if (session.mode === 'demo' && /^\/trips\/[^/]+\/expenses(?:\/[^/]+)?$/.test(path) && method !== 'DELETE') {
+      body = { ...body, attachments: await uploadAttachments(path.split('/')[2], body.attachments as import('./types').Attachment[]) };
+    }
+    return await session.request(path, method, body) as Trip | User;
+  }, [session]);
   const refresh = useCallback(async () => {}, []); // Mutations publish the authoritative local snapshot.
   const updateTrip = useCallback(() => {}, []);
   const markRead = useCallback((groups: Trip[]) => setSeen(prev => {

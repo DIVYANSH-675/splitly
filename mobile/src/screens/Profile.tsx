@@ -32,7 +32,7 @@ export default function Profile() {
         <View style={{ alignItems: 'center', paddingVertical: 10, gap: 12 }}>
           <Text style={[s.eyebrow, { marginBottom: 9 }]}>YOUR LITTLE CORNER</Text>
           <Avatar photo={photo ?? user.photo} name={user.name} size={82} />
-          {mode === 'online' && <Btn
+          {mode !== 'child' && <Btn
             title="Change profile photo"
             secondary
             onPress={async () => {
@@ -59,7 +59,7 @@ export default function Profile() {
               }
             }}
           />}
-          {mode === 'online' && Boolean(photo ?? user.photo) && (
+          {mode !== 'child' && Boolean(photo ?? user.photo) && (
             <Btn title="Remove photo" secondary onPress={() => setPhoto('')} />
           )}
           <Text style={s.h2}>{user.name}</Text>

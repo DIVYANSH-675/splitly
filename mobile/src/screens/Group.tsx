@@ -640,15 +640,15 @@ export default function Group() {
         }}
       >
         <Field
-          label={memberId || mode !== 'online' ? 'Name' : 'Name or @username'}
+          label={memberId || mode === 'child' ? 'Name' : 'Name or @username'}
           value={memberName}
           onChangeText={setMemberName}
-          placeholder={mode === 'online' ? 'Jigyasu or @jigyasu_patel' : 'Family or Friend'}
+          placeholder={mode === 'online' ? 'Jigyasu or @jigyasu_patel' : mode === 'demo' ? 'Jigyasu or @aarav' : 'Family or Friend'}
           maxLength={60}
           editable={!trip.members.find((member) => member.id === memberId)?.linked}
         />
         <Text style={s.muted}>
-          {mode !== 'online' ? 'Names are labels on this device. They do not invite or contact anyone. Change your own name in Profile.' : trip.members.find((member) => member.id === memberId)?.linked
+          {mode === 'demo' ? 'Sample usernames: @aarav, @priya and @rohan. Nobody is contacted. Linked names are fixed; change your own name in Profile.' : mode === 'child' ? 'Names are labels on this device. They do not invite or contact anyone. Change your own name in Profile.' : trip.members.find((member) => member.id === memberId)?.linked
             ? 'Connected members use their profile name. They can update it in Profile.'
             : 'Use a name for an unclaimed guest, or @username to add an existing account after syncing.'}
         </Text>
