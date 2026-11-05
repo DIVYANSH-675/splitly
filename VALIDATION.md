@@ -1,4 +1,4 @@
-# Validation — SplitBill 1.3.3 preparation (2026-11-05)
+# Validation — SplitBill 1.3.3 (2026-11-05)
 
 - 51 automated tests pass, including persistent local ledgers, transfers excluded from expense totals, date edits, category persistence, serialized saves, failed-storage rollback, snapshot isolation and remote-field stripping.
 - The actual API transport is compiled into the tests: local mode routes requests locally, rejects uncovered upload/auth/download paths, makes zero fetch calls and preserves existing adult credentials. Exiting restores the normal transport. A delayed cloud-outbox write is rejected in local mode, remains queued and resumes against the preserved adult account after local mode exits; it never becomes a local group.
@@ -7,8 +7,8 @@
 - Extended browser QA saved an edited name and locally resized photo, claimed a sample guest with its INR +4,500 balance, picked a synthetic PDF, saved it on a new bill and opened its receipt action. Reset restored Alex, the original three bills and one group. No external HTTP requests were observed during those operations. The only captured warning was the expected Metro disconnect while restarting the development server.
 - Extended-demo tests cover receipt upload/download and file-type/size validation, local profile photos, synthetic username lookup, claim-preserved balances, join-as-new zero balance and author/admin permissions. Base64 round trips include a 2 MB boundary file; remote photos and real invite codes are rejected. Sample QR codes use the normal 12-character hexadecimal scanner format; friendly DEMOCLAIM/DEMONEW aliases resolve to the same group without duplicate joins. A format mismatch found before publication was corrected; superseded native builds were canceled.
 - Demo PDF and XLSX tests cover current edited ledger values, numeric shares and safe literal spreadsheet labels. Both rendered PDF pages were visually inspected. The in-app browser did not expose the blob download event; native file sharing remains unverified.
-- Production Android/Hermes export passes (3.8 MB JavaScript bundle, not the installed/download size). The initial extended-demo export used client commit `c4aa03c`. Superseded incomplete EAS candidates were canceled before publishing; the final source includes a mode-switch queue guard.
-- Expo introspection confirms backup disabled, custom cloud/device-transfer exclusion resources and cleartext traffic disabled. Build-output verification is pending.
+- Production Android/Hermes export passes (3.8 MB JavaScript bundle, not the installed/download size). The final compiled client is `ce1ae3e`, including the mode-switch queue guard and QR compatibility fix. Superseded incomplete candidates were canceled before publishing.
+- Expo introspection and the actual AAB confirm backup disabled, all nine data domains excluded from legacy/cloud backup and device transfer, and cleartext traffic disabled. The packaged XML resources were decoded and checked.
 - Physical-device parent PIN interaction, local storage restart, native SDK network traffic before/after the age screen, camera/date picker/sharing and Google return remain unverified. No blanket Families-policy or legal-compliance certification is claimed.
 
 # Validation — SplitBill
@@ -19,7 +19,15 @@
 - Both APK v2 signatures match the existing preview certificate (`fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`). All 28 ARM64 ELF libraries have at least 16 KiB load alignment, and all 28 stored native entries are ZIP-aligned to 16 KiB. No advertising-ID, overlay, microphone or broad media/storage permission is present.
 - ARM64: 37,534,667 bytes; SHA-256 `8bf0d2b48e36e317c4419205f013321b435c01f36ed37ab7316e229d0b2395d6`.
 - ARMv7: 28,538,871 bytes; SHA-256 `3d6dde7afd137668de82a179179360fe983af959c6e106451d45845c871c985a`.
-- Android/Hermes export also passes for this final client. Physical-phone installation, native SDK traffic and interaction remain unverified. Production AAB verification and Play build-11 publication are pending.
+- Android/Hermes export also passes for this final client. Physical-phone installation, native SDK traffic and interaction remain unverified. The compiled APK bundles also contain the final QR compatibility fix.
+
+## 1.3.3 Play bundle and publication
+
+- Production EAS build `e18c222b-57e7-4640-967a-db6e53b7f4ef` finished from client `ce1ae3ef6b0e46afac3bfca1a36f61af922454f2`. Bundletool, ZIP integrity, JAR signature and matching upload-certificate checks pass. Package is `com.divyansh.splitly`, version 1.3.3/code 11, min SDK 24 and target SDK 36. All 56 packaged 64-bit ELF libraries have at least 16 KiB load alignment. No advertising-ID or overlay permission is present, and the final client strings are in the actual Hermes bundle.
+- AAB: 80,167,104 bytes; SHA-256 `59779795f25646b96dd818cf1dee8f3248fb2b4f6000461c3d6b653870c2b1bb`. The upload certificate remains `E4:19:51:7B:CC:75:25:9B:63:4A:CE:E4:5C:FA:5A:00:E0:18:7F:63:19:97:CE:04:A4:C6:21:0D:23:04:63:A0`.
+- Play release 3 is Active and Available to internal testers. Selected tester accounts are unchanged. Play estimates 16.8 MB for new installs and 1.72 MB for updates, with no supported-device losses. Propagation can take an hour or longer. This is not a public production release.
+- Both APKs, the AAB, source ZIP and SHA256SUMS are published on the public v1.3.3 GitHub prerelease. Unauthenticated release/API and download checks returned HTTP 200; GitHub asset digests match the local binaries. Tag/source archive `bda99de` contains documentation-only changes after the compiled client; current status documentation is maintained on main without rewriting the tag.
+- Public privacy/deletion pages are updated. Reviewer-demo instructions, no-advertising-ID declaration and the revised store description are saved in Play, ready for review. Dashboard setup is 8/11 complete. Content rating awaits IARC legal approval; ages 9–12 remain disabled until rating completion, and final Data safety follows Target audience. Tester-list/country choices, physical-device acceptance and the 12-testers/14-days closed test remain outstanding. No closed test or production submission has occurred.
 
 ## 1.3.2 Google return fix (2026-11-05)
 

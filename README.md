@@ -8,11 +8,17 @@ A simple Android app for shared bills. Add a bill or transfer, see everyone’s 
 
 First launch asks for an age range. Ages 9–17 use a parent-configured local ledger with no Google login, online invitations, camera, photos, receipts or shared exports. Ages 18+ can use Google and cloud groups, or explore disposable sample data without an account. The demo supports local photos, receipt files, synthetic username invitations and claiming/joining sample groups. It cannot contact real users or join real groups. The parent PIN guards switching away from younger-user mode. Local data is not uploaded or synced and is lost if app data is cleared or the app is removed. Android cloud backup and device transfer are disabled. This is a local parent control, not identity verification or a claim of legal certification.
 
-**Play update: build 11 is being prepared for internal testing; build 10 remains active until the new upload is verified and published.** There is no public production release. The [internal-test invitation](https://play.google.com/apps/internaltest/4701212314015548936) requires a selected tester email (initially `developerg675@gmail.com`). The temporary package name remains until Google reviews the app. The 1.3.2 Google return fix and 1.3.1 date picker are retained in the new client.
+**Version 1.3.3 (build 11) is active in Google Play internal testing.** Play estimates a 16.8 MB new-install download and a 1.72 MB update; sizes vary by device and propagation can take an hour or occasionally longer. There is no public production release. The [internal-test invitation](https://play.google.com/apps/internaltest/4701212314015548936) requires a selected tester email (initially `developerg675@gmail.com`). The temporary package name remains until Google reviews the app. The 1.3.2 Google return fix and 1.3.1 date picker are retained in the new client.
 
 Keep pending changes until they sync. Production Play signing differs from the older debug-signed APK preview, so replacing one with the other may require removal; confirm your cloud groups are synced first. Historical changes are in [release notes](docs/RELEASE_NOTES.md).
 
 The app uses the dedicated **SplitBill Supabase project** by default. The Google provider and backend are deployed, and the provider credentials have passed a real browser sign-in. The hosted service needs no local computer. First-time Google sign-in, joining an unfamiliar group and exports need a connection. Once signed in, your saved groups and pending changes remain available offline.
+
+Current browser previews with synthetic data (not Android-device captures):
+
+<img src="docs/parent-setup-preview.png" width="260" alt="Parent setup for the separate on-device ledger"> <img src="docs/demo-receipt-preview.png" width="260" alt="Sample-data demo with a saved bill and local PDF receipt">
+
+Earlier adult flow previews:
 
 <img src="docs/google-welcome-preview.png" width="260" alt="SplitBill Google-only sign-in screen"> <img src="docs/notifications-preview.png" width="260" alt="Full-page group history">
 

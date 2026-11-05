@@ -3,10 +3,10 @@
 - Add a neutral age screen for ages 9–12, 13–15, 16–17 and 18+.
 - Give ages 9–17 a separate persistent on-device ledger, set up by a parent with a six-digit PIN. The parent birth date is checked locally and discarded; the PIN is stored as a salted hash with failed-attempt lockout.
 - Keep younger-user ledgers separate from Google/cloud accounts. Online invitations, camera, profile photos, receipts and external report sharing are unavailable in this mode.
-- Let adults explore, edit, reset and exit a synthetic sample ledger without an account. Local profile photos, receipt attachments, sample @usernames and invitation/claim flows are available. PDF/XLSX exports are generated locally. Real users and cloud groups are never contacted by the demo.
+- Let adults explore, edit, reset and exit a synthetic sample ledger without an account. Local profile photos, receipt attachments, sample usernames and invitation/claim flows are available. PDF/XLSX exports are generated locally. Real users and cloud groups are never contacted by the demo.
 - Disable Android cloud backup and device transfer of app data. Clearing data or uninstalling loses local-only ledgers.
 
-Build 11 APK previews are available from [GitHub Releases](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.3.3). Play internal-test upload is pending. Public release still requires completed app-content declarations, closed testing and Google approval. Native parent setup, SDK traffic, installation and OAuth return require physical-device acceptance.
+Build 11 APK previews are available from [GitHub Releases](https://github.com/DIVYANSH-675/splitly/releases/tag/v1.3.3). Build 11 is also Active and Available to internal testers on [Google Play](https://play.google.com/apps/internaltest/4701212314015548936), using a selected tester account. Play estimates a 16.8 MB new-install download; propagation can take an hour or longer. Public release still requires completed app-content declarations, closed testing and Google approval. Native parent setup, SDK traffic, installation and OAuth return require physical-device acceptance.
 
 # SplitBill 1.3.2 — Google sign-in return
 
