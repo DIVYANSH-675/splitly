@@ -6,7 +6,10 @@
 - A live native sign-in is owned by the browser-session handler. Expo Router ignores that same warm callback instead of mounting another auth screen; cold and delayed callbacks retain their recovery route and use the current callback parameters.
 - Android Custom Tabs use the app task instead of a separate proxy task. Home shows a progress indicator during token exchange; a temporary group-fetch failure after successful authentication no longer reports sign-in failure.
 - PKCE, state, API binding, ten-minute expiry, Google account permissions and secure token storage remain enforced. No production auth configuration or database changes were needed.
-- Android production build 10 is being prepared. Physical-phone OAuth return/Back behavior is not yet verified; automated lifecycle tests do not substitute for a phone test.
+- EAS production build `db82cc9e-e3b0-43a9-8dc7-9b76765ef32f` finished from client commit `8ecbf8d`. Bundletool, ZIP integrity, JAR signature, matching upload certificate, package/version/SDK, HTTPS/no-overlay checks and all 56 packaged 64-bit ELF alignment checks pass. A unique string from the latest client is present in the actual Hermes bundle.
+- Version 1.3.2 (10) is published and Available to internal testers on the existing track; selected tester accounts remain unchanged. Play estimates 16.8 MB for new installs and 1.67 MB for updates. Store propagation can take an hour or occasionally longer. Physical-phone OAuth return/Back behavior is not yet verified; automated lifecycle tests do not substitute for a phone test.
+- The live API health and Google configuration endpoints return HTTP 200. The superseded initial build was canceled before publication to include visible error handling in the final client.
+- AAB: 80,136,171 bytes; SHA-256 `a31845864efd54d91455ff62ea849a8fa703a9beb94cbd0c55ad4bf58705ea05`. This is the multi-architecture upload, not the Play download size.
 
 ## 1.3.1 Play internal test (2026-11-04)
 

@@ -1,11 +1,11 @@
 # Google Play release status
 
-Updated 4 November 2026.
+Updated 5 November 2026.
 
 - Developer: Divyansh007, developerg675@gmail.com. Existing developer account retained.
 - App: SplitBill, `com.divyansh.splitly`; Play app ID `4975475007444706136`.
-- EAS: `@meridian-max/splitly`; version 1.3.1, code 9, client commit `cec90ec`.
-- Internal test: Active; release `1.3.1 (9) · date editing`; developer email is the only selected tester. The unrelated Rishikesh tester list was not selected or changed.
+- EAS: `@meridian-max/splitly`; version 1.3.2, code 10, client commit `8ecbf8d`; build `db82cc9e-e3b0-43a9-8dc7-9b76765ef32f`.
+- Internal test: Active; release `1.3.2 (10) · Google sign-in fix`; developer email is the only selected tester. The unrelated Rishikesh tester list was not selected or changed.
 - Install invitation: <https://play.google.com/apps/internaltest/4701212314015548936>. Sign in with a selected email and accept the invitation. Propagation can take time. The temporary unreviewed package name is expected before app review.
 - Public production: not available. Google requires a closed-test release, 12 testers opted in continuously for 14 days, then an application for production access.
 - Saved: privacy policy, no ads, no government affiliation, no health features, expense-ledger financial description, Finance category, public developer contact and store listing.
@@ -26,4 +26,4 @@ The owner approved the public support email and manual deletion target. Operatio
 
 ## Verification boundary
 
-Bundle integrity/signature, package/version/SDK, cleartext policy and 64-bit ELF alignment are checked. 39 automated tests, TypeScript and lint pass. Android device Google OAuth return, camera, date-picker interaction and installation have not been tested on a physical phone. Internal-test publication is not production approval.
+Bundle integrity/signature, package/version/SDK, cleartext policy and 64-bit ELF alignment are checked. 43 automated tests, TypeScript and lint pass. Android device Google OAuth return, camera, date-picker interaction and installation have not been tested on a physical phone. Internal-test publication is not production approval.

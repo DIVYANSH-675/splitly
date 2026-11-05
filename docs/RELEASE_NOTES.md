@@ -5,7 +5,7 @@
 - Recover delayed callbacks and sign-ins interrupted by an app restart.
 - Show progress while completing sign-in and retain successful authentication if loading groups temporarily fails.
 
-43 tests, TypeScript and lint pass. Production build 10 is being prepared; physical-phone sign-in and Back navigation remain unverified.
+43 tests, TypeScript, lint and signed-bundle checks pass. Build 10 is active in Google Play internal testing. Allow time for Play propagation; physical-phone sign-in and Back navigation remain unverified.
 
 # SplitBill 1.3.1 — Google Play internal testing
 
