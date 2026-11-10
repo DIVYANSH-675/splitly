@@ -3,8 +3,8 @@ SplitBill keeps shared costs easy to follow. Add a bill or record a transfer, se
 SHARED BILLS, SIMPLE MATHS
 Create groups, add people, and split equally, by exact amounts, by percentages or by shares. Choose who paid and who took part using the From and To selectors. Correct an expense date, choose a category, or add a category for your group. Transfers change balances without increasing expense totals.
 
-A PRIVATE LOCAL LEDGER FOR YOUNGER USERS
-SplitBill is designed for ages 9 and over. Ages 9–17 use a separate on-device ledger set up by a parent or guardian. A parent PIN protects switching device age settings. Younger-user mode has no Google sign-in, online invitations, camera, profile photos, receipt uploads or external report sharing. Local groups and bills work without Internet and are not uploaded or synced. Clearing app data or uninstalling removes this local ledger; there is no cloud recovery for it.
+A PRIVATE LOCAL LEDGER FOR TEENS
+This Google Play release is intended for ages 13 and over. Ages 13–17 use a separate on-device ledger set up by a parent or guardian. A parent PIN protects switching device age settings. Younger-user mode has no Google sign-in, online invitations, camera, profile photos, receipt uploads or external report sharing. Local groups and bills work without Internet and are not uploaded or synced. Clearing app data or uninstalling removes this local ledger; there is no cloud recovery for it.
 
 ADULT GOOGLE AND CLOUD ACCESS
 Adults aged 18 and over can sign in with Google to keep their synced groups across devices. Edit your profile name, short username and optional photo. Add comma-separated names or @usernames, join using a code or QR scan, and claim an unclaimed guest name while keeping its recorded bills and balance. Optional receipts support JPG, PNG, WebP and PDF.
